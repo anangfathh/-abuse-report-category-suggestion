@@ -1,0 +1,10 @@
+# Strategic merge patch, not a standalone Deployment manifest.
+# kubectl patch deployment/backend -n multiagent --type=strategic --patch-file=THIS_FILE
+spec:
+  template:
+    spec:
+      containers:
+        - name: backend
+          env:
+            - name: MODERATION_ENABLED
+              value: "true"

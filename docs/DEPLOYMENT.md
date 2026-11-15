@@ -2,6 +2,8 @@
 
 Deployment on 15 November 2026, requested by repository owner. Public app origin: **https://abuse-reporter.qudo.id**. Source image `abuse-reporter:9dd47a6` (Next.js 16.4.6). The classifier/review/knowledge service remains independent and is consumed over configured HTTP API.
 
+Subsequent owner correction: new base predictions must use the original NarasiAhli classify API. Current frontend image is `abuse-reporter:narasi-v1`; an optional per-tenant adapter is deployed in the existing review workflow. See [NARASIAHLI-PREDICTION.md](NARASIAHLI-PREDICTION.md) for actual call chain, key placement, state preservation and live proof. The earlier statement about a fully independent classifier no longer describes the selected prediction provider for this app.
+
 ## Runtime layout
 
 - Docker Compose project/container `abuse-reporter`; non-root Node user.
@@ -26,7 +28,7 @@ Existing service keys were used server-side for the configured tenant. Initial a
 Run from repository root; deploy credentials/compose configuration first.
 
 ```sh
-docker build -t abuse-reporter:9dd47a6 .
+docker build -t abuse-reporter:narasi-v1 .
 docker compose --project-name abuse-reporter \
   --env-file /root/.config/abuse-reporter/compose.env \
   -f deploy/compose.yaml up -d

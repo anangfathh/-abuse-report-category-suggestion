@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${APP_IMAGE:-abuse-reporter:9dd47a6}
+    image: ${APP_IMAGE:-abuse-reporter:narasi-v1}
     container_name: abuse-reporter
     restart: unless-stopped
     env_file:

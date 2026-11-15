@@ -1,0 +1,528 @@
+{
+  "platform": "x",
+  "version": "x-policy-2026-11-11-v1",
+  "researched_at": "2026-11-11",
+  "kind": "policy_mapping",
+  "report_ui_verified": false,
+  "scope": "Text-only triage; not X enforcement and not a complete replica of Report menus.",
+  "report_reference": "https://help.x.com/en/safety-and-security/report-a-post",
+  "categories": [
+    {
+      "id": "hate",
+      "label": "Perilaku kebencian",
+      "policy_title": "Hateful Conduct",
+      "source_url": "https://help.x.com/en/rules-and-policies/hateful-conduct-policy",
+      "source_updated": "2023-04",
+      "exceptions": "Kritik agama/ideologi, kutipan mengecam kebencian, penggunaan ulang istilah dalam kelompok, atau boikot politik tidak otomatis melanggar. Kategori terlindungi bukan partai/profesi.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "hate.slurs",
+          "label": "Hinaan berbasis identitas",
+          "detail": "Serangan merendahkan kategori terlindungi melalui cercaan atau stereotip kebencian.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "hate.dehumanization",
+          "label": "Dehumanisasi",
+          "detail": "Menyamakan manusia dari kategori terlindungi dengan hewan, penyakit, atau objek untuk merendahkan.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "hate.fear",
+          "label": "Stereotip yang memicu ketakutan",
+          "detail": "Generalisasi berbahaya tentang kategori terlindungi untuk menghasut ketakutan.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "hate.discrimination",
+          "label": "Hasutan diskriminasi",
+          "detail": "Mengajak penolakan ekonomi karena identitas terlindungi; bukan otomatis boikot politik.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "hate.violent_references",
+          "label": "Rujukan kekerasan untuk melecehkan",
+          "detail": "Menggunakan kekejaman terhadap kategori terlindungi untuk mengintimidasi mereka.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "hate.imagery",
+          "label": "Simbol atau gambar kebencian",
+          "detail": "Penggunaan visual kebencian untuk menyerang kategori terlindungi.",
+          "evidence_requirement": "media"
+        }
+      ]
+    },
+    {
+      "id": "abuse",
+      "label": "Pelecehan dan perundungan",
+      "policy_title": "Abuse and harassment",
+      "source_url": "https://help.x.com/en/rules-and-policies/abusive-behavior",
+      "source_updated": "2024-03",
+      "exceptions": "Kritik gagasan, institusi atau praktik, ekspresi kemarahan, dan setiap kata kasar tidak otomatis melanggar. Persetujuan, pola perilaku dan konteks sasaran relevan.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "abuse.targeted",
+          "label": "Pelecehan terarah",
+          "detail": "Serangan bermaksud mempermalukan orang tertentu, termasuk mention atau pola balasan jahat.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "abuse.incitement",
+          "label": "Ajakan melecehkan",
+          "detail": "Mengajak orang lain menyerang atau melecehkan sasaran tertentu.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "abuse.sexual",
+          "label": "Pelecehan seksual",
+          "detail": "Objektifikasi seksual atau pendekatan seksual yang tidak dikehendaki.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "abuse.event_denial",
+          "label": "Penyangkalan tragedi dengan pelecehan",
+          "detail": "Menyangkal peristiwa korban massal yang terverifikasi untuk melecehkan korban.",
+          "evidence_requirement": "external"
+        },
+        {
+          "id": "abuse.identity",
+          "label": "Pelecehan nama atau pronomina",
+          "detail": "Penggunaan nama lama atau pronomina yang menargetkan seseorang secara melecehkan.",
+          "evidence_requirement": "external"
+        }
+      ]
+    },
+    {
+      "id": "violence",
+      "label": "Konten kekerasan",
+      "policy_title": "Violent Content Policy",
+      "source_url": "https://help.x.com/en/rules-and-policies/violent-content",
+      "source_updated": "2025-02",
+      "exceptions": "Hiperbola, olahraga, gim, satire, seni, dan peliputan netral dinilai berdasarkan konteks; media grafis tertentu boleh dengan penandaan dan penempatan sesuai.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "violence.threat",
+          "label": "Ancaman kekerasan",
+          "detail": "Ancaman melukai, membunuh, menyerang seksual, atau merusak infrastruktur sipil.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "violence.wish",
+          "label": "Harapan bahaya fisik",
+          "detail": "Berharap seseorang mengalami kematian, penyakit atau bahaya fisik.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "violence.incitement",
+          "label": "Hasutan kekerasan",
+          "detail": "Mengajak pihak lain melakukan kekerasan atau kekejaman.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "violence.glorification",
+          "label": "Pemuliaan kekerasan",
+          "detail": "Memuji kekerasan yang telah menimbulkan bahaya, termasuk kekejaman terhadap hewan.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "violence.gore",
+          "label": "Media kekerasan terlarang",
+          "detail": "Media sangat sadis atau kekerasan seksual yang tidak diizinkan.",
+          "evidence_requirement": "media"
+        },
+        {
+          "id": "violence.unmarked",
+          "label": "Media kekerasan tanpa penandaan",
+          "detail": "Media grafis tanpa peringatan atau di area yang terlihat menonjol.",
+          "evidence_requirement": "media"
+        }
+      ]
+    },
+    {
+      "id": "child_safety",
+      "label": "Keselamatan anak",
+      "policy_title": "Child Safety Policy",
+      "source_url": "https://help.x.com/en/rules-and-policies/child-safety",
+      "source_updated": "2024-05",
+      "exceptions": "Diskusi perlindungan atau pemberitaan tanpa materi eksploitasi bukan otomatis pelanggaran; niat edukasi tidak membolehkan distribusi materi eksploitasi.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "child_safety.sexual_exploitation",
+          "label": "Eksploitasi seksual anak",
+          "detail": "Menawarkan, meminta, mempromosikan atau menyeksualisasi anak di bawah 18 tahun.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "child_safety.grooming",
+          "label": "Pendekatan seksual terhadap anak",
+          "detail": "Upaya memperoleh media seksual atau melibatkan anak dalam aktivitas seksual.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "child_safety.abuse_media",
+          "label": "Media kekerasan fisik terhadap anak",
+          "detail": "Media kekerasan fisik atau perkelahian anak yang dibatasi kebijakan.",
+          "evidence_requirement": "media"
+        }
+      ]
+    },
+    {
+      "id": "intimate",
+      "label": "Konten intim tanpa persetujuan",
+      "policy_title": "Non-Consensual Intimate Content policy",
+      "source_url": "https://help.x.com/en/rules-and-policies/intimate-media",
+      "source_updated": "2026-10",
+      "exceptions": "Konten dewasa dengan persetujuan tidak otomatis melanggar; subjek anak diarahkan ke keselamatan anak.",
+      "report_navigation": {
+        "path": [
+          "Report post",
+          "Private or Non-Consensual Content"
+        ],
+        "verification": "official_help_documented",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "intimate.threat",
+          "label": "Ancaman penyebaran konten intim",
+          "detail": "Mengancam menyebarkan konten intim orang nyata tanpa izin, termasuk pemerasan.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "intimate.creation",
+          "label": "Pembuatan atau permintaan konten intim tanpa izin",
+          "detail": "Meminta atau mencoba membuat konten intim orang nyata tanpa persetujuannya, termasuk dengan AI.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "intimate.distribution",
+          "label": "Distribusi konten intim tanpa izin",
+          "detail": "Membagikan konten intim orang nyata tanpa persetujuan; perlu bukti media/konteks persetujuan.",
+          "evidence_requirement": "media"
+        }
+      ]
+    },
+    {
+      "id": "privacy",
+      "label": "Informasi dan media pribadi",
+      "policy_title": "Private information policy",
+      "source_url": "https://help.x.com/en/rules-and-policies/personal-information",
+      "source_updated": "2024-03",
+      "exceptions": "Data sendiri, informasi bisnis publik, nama semata dan peliputan kepentingan publik bukan otomatis pelanggaran; alamat rumah dan niat melecehkan membutuhkan kehati-hatian.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "privacy.doxxing",
+          "label": "Penyebaran informasi pribadi",
+          "detail": "Membagikan alamat rumah, kontak nonpublik, identitas, finansial atau data kesehatan orang lain tanpa izin.",
+          "evidence_requirement": "context"
+        },
+        {
+          "id": "privacy.threat",
+          "label": "Ancaman membuka informasi pribadi",
+          "detail": "Mengancam membuka data pribadi atau memeras agar data tidak dibuka.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "privacy.bounty",
+          "label": "Permintaan atau imbalan doxxing",
+          "detail": "Meminta atau menawarkan imbalan untuk membuka data pribadi tanpa izin.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "privacy.private_media",
+          "label": "Media pribadi tanpa izin",
+          "detail": "Membagikan media individu privat tanpa izin; pertimbangkan kepentingan publik.",
+          "evidence_requirement": "media"
+        }
+      ]
+    },
+    {
+      "id": "self_harm",
+      "label": "Bunuh diri dan menyakiti diri",
+      "policy_title": "Suicide and Self-harm Policy",
+      "source_url": "https://help.x.com/en/rules-and-policies/glorifying-self-harm",
+      "source_updated": "2026-03",
+      "exceptions": "Mencari bantuan, mengungkapkan kesulitan, pemulihan, pencegahan dan penelitian bukan otomatis pelanggaran. Ide bunuh diri tanpa promosi perlu dukungan, bukan label pelanggaran.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "self_harm.encouragement",
+          "label": "Dorongan menyakiti diri",
+          "detail": "Mendorong bunuh diri/menyakiti diri atau menormalisasi perilaku itu sebagai solusi.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "self_harm.methods",
+          "label": "Bantuan metode menyakiti diri",
+          "detail": "Memberikan metode atau strategi yang membantu menyakiti diri atau menghalangi pemulihan.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "self_harm.depiction",
+          "label": "Penggambaran tindakan menyakiti diri",
+          "detail": "Media tindakan menyakiti diri tanpa konteks pemulihan.",
+          "evidence_requirement": "media"
+        }
+      ]
+    },
+    {
+      "id": "adult",
+      "label": "Konten dewasa",
+      "policy_title": "Adult Content Policy",
+      "source_url": "https://help.x.com/en/rules-and-policies/adult-content",
+      "source_updated": "2024-05",
+      "exceptions": "Konten dewasa konsensual yang ditandai dan ditempatkan sesuai dapat diizinkan; edukasi, medis dan seni tidak otomatis pornografi.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "adult.unmarked",
+          "label": "Konten dewasa tanpa peringatan",
+          "detail": "Konten dewasa yang wajib ditandai namun tanpa peringatan.",
+          "evidence_requirement": "media"
+        },
+        {
+          "id": "adult.prominent",
+          "label": "Konten dewasa di area menonjol",
+          "detail": "Konten dewasa pada profil, header atau area menonjol yang dilarang.",
+          "evidence_requirement": "media"
+        }
+      ]
+    },
+    {
+      "id": "regulated",
+      "label": "Barang, jasa dan aktivitas terlarang",
+      "policy_title": "Illegal or regulated goods and services",
+      "source_url": "https://help.x.com/en/rules-and-policies/illegal-regulated-behaviors",
+      "source_updated": "2025-02",
+      "exceptions": "Pemberitaan, pendidikan dan pembahasan barang tidak sama dengan penawaran atau fasilitasi transaksi. Status legal setempat mungkin membutuhkan verifikasi.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "regulated.trafficking",
+          "label": "Perdagangan atau penyelundupan manusia",
+          "detail": "Memfasilitasi perdagangan manusia, tenaga kerja paksa, penyelundupan atau perdagangan organ.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "regulated.sexual_services",
+          "label": "Jasa seksual luring",
+          "detail": "Menawarkan, mencari atau memperantarai jasa seksual luring berbayar.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "regulated.drugs",
+          "label": "Transaksi narkoba",
+          "detail": "Menjual, membeli atau memfasilitasi distribusi obat/zat terlarang sesuai kebijakan.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "regulated.weapons",
+          "label": "Transaksi senjata atau petunjuk mematikan",
+          "detail": "Transaksi senjata antarindividu atau petunjuk langkah demi langkah membuat senjata mematikan.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "regulated.species",
+          "label": "Perdagangan spesies terancam",
+          "detail": "Transaksi spesies terancam atau produk darinya.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "regulated.illegal_activity",
+          "label": "Fasilitasi aktivitas ilegal",
+          "detail": "Fasilitasi pencurian atau akses barang terbatas bagi anak; jangan menentukan hukum tanpa fakta.",
+          "evidence_requirement": "context"
+        }
+      ]
+    },
+    {
+      "id": "entities",
+      "label": "Entitas kekerasan dan kebencian",
+      "policy_title": "Violent and hateful entities policy",
+      "source_url": "https://help.x.com/en/rules-and-policies/violent-entities",
+      "source_updated": "2023-04",
+      "exceptions": "Pembahasan edukatif, dokumenter atau berita netral dapat diizinkan; jangan menyatakan kelompok teroris hanya berdasarkan opini.",
+      "report_navigation": {
+        "path": [
+          "Report Account",
+          "Violent & hateful entities"
+        ],
+        "verification": "official_help_documented",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "entities.promotion",
+          "label": "Promosi atau dukungan entitas",
+          "detail": "Mendukung kegiatan kekerasan/kebencian dari entitas yang statusnya terverifikasi.",
+          "evidence_requirement": "external"
+        },
+        {
+          "id": "entities.recruitment",
+          "label": "Rekrutmen atau propaganda entitas",
+          "detail": "Rekrutmen atau distribusi propaganda untuk tujuan entitas kekerasan/kebencian terverifikasi.",
+          "evidence_requirement": "external"
+        }
+      ]
+    },
+    {
+      "id": "perpetrators",
+      "label": "Pelaku serangan kekerasan",
+      "policy_title": "Perpetrators of violent attacks policy",
+      "source_url": "https://help.x.com/en/rules-and-policies/perpetrators-of-violent-attacks",
+      "source_updated": "2023-02",
+      "exceptions": "Peliputan netral dan konteks edukasi perlu dibedakan dari amplifikasi atau pemuliaan pelaku.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "perpetrators.manifesto",
+          "label": "Manifesto atau akun pelaku serangan",
+          "detail": "Penyebaran manifesto atau akun pemujaan pelaku serangan; identitas dan materi perlu verifikasi.",
+          "evidence_requirement": "external"
+        }
+      ]
+    },
+    {
+      "id": "authenticity",
+      "label": "Keaslian dan integritas platform",
+      "policy_title": "Authenticity",
+      "source_url": "https://help.x.com/en/rules-and-policies/authenticity",
+      "source_updated": "2025-04",
+      "exceptions": "Parodi transparan, akun samaran, koordinasi autentik dan promosi biasa bukan otomatis pelanggaran. Satu teks tidak membuktikan bot atau spam berulang.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "authenticity.impersonation",
+          "label": "Penyamaran menipu",
+          "detail": "Identitas yang meniru pihak lain untuk menipu; memerlukan bukti profil dan afiliasi.",
+          "evidence_requirement": "external"
+        },
+        {
+          "id": "authenticity.spam",
+          "label": "Spam konten atau manipulasi keterlibatan",
+          "detail": "Pola kiriman massal, duplikat atau manipulasi metrik; tidak dapat dibuktikan dari satu iklan biasa.",
+          "evidence_requirement": "external"
+        },
+        {
+          "id": "authenticity.scam",
+          "label": "Penipuan atau phishing",
+          "detail": "Taktik menipu untuk memperoleh uang, properti atau data pribadi.",
+          "evidence_requirement": "text"
+        },
+        {
+          "id": "authenticity.malicious_link",
+          "label": "Tautan berbahaya",
+          "detail": "Tautan malware, phishing atau pengalihan menipu; tanpa membuka URL, reputasinya belum terbukti.",
+          "evidence_requirement": "external"
+        },
+        {
+          "id": "authenticity.manipulated_media",
+          "label": "Media manipulatif yang menyesatkan",
+          "detail": "Media berubah atau keluar konteks yang menipu dan berpotensi bahaya serius.",
+          "evidence_requirement": "media"
+        },
+        {
+          "id": "authenticity.compromise",
+          "label": "Akses akun tanpa izin",
+          "detail": "Upaya mengakses atau memodifikasi akun pihak lain tanpa otorisasi.",
+          "evidence_requirement": "context"
+        }
+      ]
+    },
+    {
+      "id": "civic",
+      "label": "Integritas proses sipil",
+      "policy_title": "The X Rules — Civic Integrity",
+      "source_url": "https://help.x.com/en/rules-and-policies/x-rules",
+      "source_updated": null,
+      "exceptions": "Kritik politik atau pendapat bukan pelanggaran; kebenaran prosedur dan jadwal harus diverifikasi, bukan ditebak model.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "civic.participation",
+          "label": "Manipulasi partisipasi sipil",
+          "detail": "Informasi menyesatkan tentang kapan, di mana atau cara berpartisipasi dalam proses sipil.",
+          "evidence_requirement": "external"
+        }
+      ]
+    },
+    {
+      "id": "ip",
+      "label": "Kekayaan intelektual",
+      "policy_title": "Copyright and Trademark",
+      "source_url": "https://help.x.com/en/rules-and-policies/copyright-policy",
+      "source_updated": null,
+      "exceptions": "Penyebutan merek, kutipan atau tautan tidak membuktikan pelanggaran hak; gunakan proses pemilik hak yang sesuai.",
+      "report_navigation": {
+        "path": [],
+        "verification": "not_verified",
+        "note": "Bukan salinan lengkap pohon menu Report; gunakan alur pelaporan X yang berlaku."
+      },
+      "subcategories": [
+        {
+          "id": "ip.copyright",
+          "label": "Dugaan pelanggaran hak cipta",
+          "detail": "Penggunaan karya tanpa hak yang relevan; perlu bukti kepemilikan, izin dan pengecualian.",
+          "evidence_requirement": "external"
+        },
+        {
+          "id": "ip.trademark",
+          "label": "Dugaan pelanggaran merek",
+          "detail": "Penggunaan merek menyesatkan; perlu bukti hak dan konteks penggunaan.",
+          "evidence_requirement": "external",
+          "source_url": "https://help.x.com/en/rules-and-policies/x-trademark-policy"
+        }
+      ]
+    }
+  ]
+}

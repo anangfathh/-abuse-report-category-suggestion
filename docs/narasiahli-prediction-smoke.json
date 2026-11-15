@@ -1,0 +1,11 @@
+{
+  "mode": "isolated smoke tenant; no human decision or knowledge mutation",
+  "http_status": 200,
+  "duration_seconds": 10.89,
+  "classification_id": "acfc35ab-0b71-477d-b8cd-30b257fad1fb",
+  "status": "completed",
+  "prediction_provider": "narasiahli",
+  "prediction_endpoint": "/api/v1/external/moderation/classify",
+  "prediction_request_id": "74022ee5-770d-4d24-a227-8ac2b7cc4557",
+  "needs_review": false
+}

@@ -4,6 +4,8 @@ Aplikasi web **mandiri** untuk PRD pada `docs/PRD-HITL-Kategorisasi-X.md`. Front
 
 Deployment Docker: **https://abuse-reporter.qudo.id**. Detail routing/TLS/operasional ada di [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Akses memerlukan akun dari admin; credential tidak disertakan di repository.
 
+**Sumber prediksi terbaru:** sesuai klarifikasi owner, prediksi baru memakai **API NarasiAhli lama** `/api/v1/external/moderation/classify`. Lapisan review tetap menangani antrean/knowledge. Detail alur, key, opt-in tenant dan bukti panggilan ada di [docs/NARASIAHLI-PREDICTION.md](docs/NARASIAHLI-PREDICTION.md). Klarifikasi ini menggantikan batas “tidak memanggil API NarasiAhli” pada handoff awal; data/auth aplikasi tetap terpisah.
+
 ## Fitur
 
 - Login manusia, session opaque HttpOnly/SameSite Strict, CSRF + pemeriksaan Origin, scrypt password hashing, rate limit login; role operator/reviewer/admin dan tenant server-side.

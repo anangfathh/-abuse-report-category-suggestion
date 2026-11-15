@@ -1,0 +1,20 @@
+# Strategic merge patch for the existing review workflow (preserves its PVC/env).
+# Build review-service/ and import its image into the target runtime first.
+# Replace __TENANT_IDS__ with only opted-in tenant IDs, comma-separated.
+# Provision secret abuse-reporter-narasiahli/api-key out of band; NEVER commit it.
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          image: abuse-reporter-review:narasi-v1
+          env:
+            - name: MODERATION_NARASIAHLI_TENANTS
+              value: __TENANT_IDS__
+            - name: MODERATION_NARASIAHLI_API_BASE_URL
+              value: http://backend.multiagent.svc.cluster.local:8000/api/v1/external/moderation
+            - name: MODERATION_NARASIAHLI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: abuse-reporter-narasiahli
+                  key: api-key

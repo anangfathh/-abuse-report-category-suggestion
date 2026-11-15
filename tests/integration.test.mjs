@@ -40,6 +40,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
       if(body.content==='badgateway')return send(502,{detail:{code:'model_error',classification_id:id}});
       if(body.content==='exact'){record.decision_source='human_knowledge_exact';record.prediction=null;}
       if(body.content==='similar')record.decision_source='human_knowledge_similar';
+      if(body.content==='legacy'){record.result.prediction_provider='narasiahli';record.result.prediction_request_id='legacy-fixture-request';}
       return send(200,record);
     }
     if(url.pathname.startsWith('/v1/classifications/')){const c=cases.get(url.pathname.split('/')[3]);return c?.tenant===tenant?send(200,c):send(404,{detail:'Not found'});}
@@ -87,7 +88,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
   const submit=async(content,actor='operator',key=randomUUID())=>request('/classifications',{actor,method:'POST',body:{platform:'x',content,context:'',context_key:'',external_reference_id:''},idem:key});
   let reviewId,caseId,knowledgeId;
   await t.test('direct finals, unknown response idempotency, tenant/ownership isolation',async()=>{
-    for(const content of ['safe','violation','exact','similar']){const r=await submit(content);assert.equal(r.status,200);assert.equal(r.data.status,'completed');if(content==='exact')assert.equal(r.data.prediction,null);}
+    for(const content of ['safe','violation','exact','similar','legacy']){const r=await submit(content);assert.equal(r.status,200);assert.equal(r.data.status,'completed');if(content==='exact')assert.equal(r.data.prediction,null);}
     const idempotency=randomUUID(),lost=await submit('lost','operator',idempotency);assert.equal(lost.status,504);assert.ok(lost.data.submission_id);
     const count=cases.size,retry=await submit('lost','operator',idempotency);assert.equal(retry.status,200);assert.equal(cases.size,count);
     assert.equal((await submit('changed','operator',idempotency)).status,409);
@@ -142,9 +143,11 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
       await page.getByRole('button',{name:'Masuk ↗',exact:true}).click();
       await expect(page.getByRole('heading',{name:'Abuse report category suggestion'})).toBeVisible();
       await page.screenshot({path:'docs/screenshots/klasifikasi-desktop.png',fullPage:true});
-      await page.getByLabel('Teks konten').fill('safe');
+      await page.getByLabel('Teks konten').fill('legacy');
       await page.getByRole('button',{name:'Analisis konten ↗'}).click();
       await expect(page.getByText('Tidak ditemukan pelanggaran',{exact:true})).toBeVisible();
+      await expect(page.getByText('API NarasiAhli · prediksi final',{exact:true})).toBeVisible();
+      await expect(page.getByText('legacy-fixture-request',{exact:true})).toBeVisible();
       await page.getByRole('button',{name:'Mulai submission baru',exact:true}).click();
       await page.getByLabel('Teks konten').fill('review');
       await page.getByRole('button',{name:'Analisis konten ↗'}).click();

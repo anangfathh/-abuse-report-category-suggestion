@@ -4,6 +4,8 @@
 
 This report records the initial standalone source verification. The owner subsequently requested Docker hosting at abuse-reporter.qudo.id; see DEPLOYMENT.md for the live deployment checks. No mutation of the existing classifier service or integration with NarasiAhli application/data was performed.
 
+Later owner correction: consume original NarasiAhli prediction API. The deployment now enables that existing API and opts only the app tenant into an adapter in the review service (database retained). Adapter/review suite 95 passed; frontend/browser suite 13 passed again; isolated live prediction confirmed HTTP 200 and legacy request ID. See NARASIAHLI-PREDICTION.md and narasiahli-prediction-smoke.json. No automated human decisions were made in live service.
+
 ### Production build
 
 `npm run build` succeeds with Next.js 16.4.6, React 19.2.7, Node 24.21.0. Routes: `/` and same-origin BFF `/api/[...path]`.
