@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-11-15T12:35:00.851260+00:00",
+  "mode": "read-only; no production mutations",
+  "checks": [
+    {
+      "path": "/health",
+      "status": 200,
+      "keys": [
+        "status",
+        "service",
+        "version"
+      ]
+    },
+    {
+      "path": "/v1/taxonomy",
+      "status": 200,
+      "keys": [
+        "platform",
+        "version",
+        "researched_at",
+        "kind",
+        "report_ui_verified",
+        "scope",
+        "report_reference",
+        "categories"
+      ],
+      "version": "x-policy-2026-11-11-v1",
+      "categories": 14,
+      "rules": 50
+    },
+    {
+      "path": "/v1/reviews?status=pending&limit=1",
+      "status": 200,
+      "keys": [
+        "items",
+        "total"
+      ],
+      "total": 0,
+      "item_keys": []
+    },
+    {
+      "path": "/v1/knowledge?limit=1",
+      "status": 200,
+      "keys": [
+        "items",
+        "total"
+      ],
+      "total": 0,
+      "item_keys": []
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "hitl-kategorisasi-x",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Independent human review workspace for Moderation Review Service",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3040",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3040",
+    "test": "node --test tests/*.test.mjs",
+    "user:add": "node --env-file-if-exists=.env.local scripts/user.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
+  }
+}
