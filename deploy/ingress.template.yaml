@@ -1,0 +1,63 @@
+# Docker runs the app. Kubernetes only routes the existing nginx ingress to it.
+# Replace __ORIGIN_IP__ with the server-private IP reachable from ingress pods.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: abuse-reporter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: abuse-reporter
+  namespace: abuse-reporter
+spec:
+  ports:
+    - name: http
+      port: 3040
+      targetPort: 3040
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: abuse-reporter-origin
+  namespace: abuse-reporter
+  labels:
+    kubernetes.io/service-name: abuse-reporter
+    endpointslice.kubernetes.io/managed-by: abuse-reporter-operator
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 3040
+endpoints:
+  - addresses: ["__ORIGIN_IP__"]
+    conditions:
+      ready: true
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: abuse-reporter
+  namespace: abuse-reporter
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-body-size: "128k"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [abuse-reporter.qudo.id]
+      secretName: abuse-reporter-tls
+  rules:
+    - host: abuse-reporter.qudo.id
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: abuse-reporter
+                port:
+                  number: 3040

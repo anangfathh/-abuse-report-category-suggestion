@@ -2,6 +2,8 @@
 
 Aplikasi web **mandiri** untuk PRD pada `docs/PRD-HITL-Kategorisasi-X.md`. Frontend berbahasa Indonesia + BFF Next.js/React; tidak mengimpor kode, auth, database, agent, atau knowledge NarasiAhli. Moderation Review Service tetap source of truth classifier, antrean manusia, keputusan, dan knowledge. Tidak mengirim laporan ke X.
 
+Deployment Docker: **https://abuse-reporter.qudo.id**. Detail routing/TLS/operasional ada di [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Akses memerlukan akun dari admin; credential tidak disertakan di repository.
+
 ## Fitur
 
 - Login manusia, session opaque HttpOnly/SameSite Strict, CSRF + pemeriksaan Origin, scrypt password hashing, rate limit login; role operator/reviewer/admin dan tenant server-side.

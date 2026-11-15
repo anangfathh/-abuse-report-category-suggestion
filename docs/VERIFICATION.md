@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented as a standalone source project. No deployment, traffic switch, mutation of the existing classifier service, or integration with NarasiAhli application/data was performed.
+This report records the initial standalone source verification. The owner subsequently requested Docker hosting at abuse-reporter.qudo.id; see DEPLOYMENT.md for the live deployment checks. No mutation of the existing classifier service or integration with NarasiAhli application/data was performed.
 
 ### Production build
 
@@ -42,7 +42,7 @@ Empty live review/knowledge lists meant live detail/decision response shape coul
 
 ## Explicit delivery limits
 
-- Source ready to configure/run; not hosted or connected to production app sessions. No default credentials or production keys included.
+- Initial source delivery needed runtime configuration. Subsequent Docker deployment and application accounts are documented separately in DEPLOYMENT.md. No credentials or production keys are included in source.
 - Single-instance SQLite pilot, long-request capable hosting required. No horizontal scaling/durable inference transport job implementation.
 - User provisioning/role/active state included; SSO, password-reset email, forced first-login password change and automated data retention are not included.
 - App ledger retains submission payload for recovery; retention is operator-controlled and documented, not automatic.
