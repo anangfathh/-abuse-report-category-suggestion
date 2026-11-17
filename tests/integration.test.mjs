@@ -143,6 +143,18 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
       await page.getByRole('button',{name:'Masuk ↗',exact:true}).click();
       await expect(page.getByRole('heading',{name:'Abuse report category suggestion'})).toBeVisible();
       await page.screenshot({path:'docs/screenshots/klasifikasi-desktop.png',fullPage:true});
+      await page.getByRole('button',{name:'Taxonomy kebijakan'}).click();
+      await expect(page.getByRole('heading',{name:'Taxonomy kebijakan X'})).toBeVisible();
+      await expect(page.getByText('fixture-policy',{exact:true}).first()).toBeVisible();
+      await page.getByLabel('Cari kategori atau subkategori').fill('ancaman');
+      await expect(page.getByRole('heading',{name:'Ancaman',exact:true})).toBeVisible();
+      await page.getByLabel('Cari kategori atau subkategori').fill('tidak ada di fixture');
+      await expect(page.getByText('Tidak ada kategori yang cocok dengan pencarian.')).toBeVisible();
+      await page.setViewportSize({width:390,height:844});
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
+      await page.setViewportSize({width:1440,height:1050});
+      await page.getByRole('button',{name:'Klasifikasi baru',exact:false}).click();
+
       await page.getByLabel('Teks konten').fill('legacy');
       await page.getByRole('button',{name:'Analisis konten ↗'}).click();
       await expect(page.getByText('Tidak ditemukan pelanggaran',{exact:true})).toBeVisible();

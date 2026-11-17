@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stateOf, policyLink, knowledgeState, decisionSchema, submissionSchema, routePolicy, hasRole } from '../lib/domain.mjs';
+import { stateOf, policyLink, knowledgeState, filterTaxonomy, decisionSchema, submissionSchema, routePolicy, hasRole } from '../lib/domain.mjs';
 test('only completed + boolean final result is final', () => {
   for (const status of ['processing','failed','pending_review']) assert.equal(stateOf({status,needs_review:false,pelanggaran:false,result:null}), status);
   assert.equal(stateOf({status:'completed',result:null}),'invalid');
@@ -30,4 +30,12 @@ test('untrusted policy URLs and expiry are handled separately',()=>{
   assert.equal(knowledgeState({state:'revoked',expires:9999},0),'revoked');
   assert.equal(knowledgeState({state:'active',expires:1},2000),'expired');
   assert.equal(knowledgeState({state:'active',expires:9,index_error:'failed'},2000),'active');
+});
+
+test('taxonomy search matches categories, rules and details without mutating the catalogue', () => {
+  const categories=[{id:'violence',label:'Kekerasan',subcategories:[{id:'violence.threat',label:'Ancaman',detail:'Tindakan fisik'},{id:'violence.other',label:'Lainnya',detail:'Konteks'}]},{id:'privacy',label:'Privasi',subcategories:[]}];
+  assert.equal(filterTaxonomy(categories,' KEKERASAN ')[0].subcategories.length,2);
+  assert.deepEqual(filterTaxonomy(categories,'FISIK')[0].subcategories.map(x=>x.id),['violence.threat']);
+  assert.equal(filterTaxonomy(categories,'tak ada').length,0);
+  assert.equal(categories[0].subcategories.length,2);
 });
