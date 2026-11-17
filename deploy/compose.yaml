@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     env_file:
       - ${APP_ENV_FILE:?Set server-only APP_ENV_FILE}
+    extra_hosts:
+      - "narasiahli.qudo.id:${NARASIAHLI_IP:-host-gateway}"
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:3040:3040"
     volumes:

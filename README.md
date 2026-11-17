@@ -131,3 +131,5 @@ Live contract read-only diperiksa terpisah, tanpa menyalin credential/konten. Ha
 ## NarasiAhli API integration
 
 Production uses NarasiAhli `/api/v1/external/moderation-review` for classification and human-review workflow. `MODERATION_TENANTS_JSON` configures the service base URL and server-only API Integration key. The key needs `moderation:read`, `moderation:classify`, and `moderation:review`; use the same integration key for client and reviewer access to the same case scope. Application login and reviewer roles remain enforced separately. The API key must never be exposed to the browser or committed.
+
+For Docker deployments, set `NARASIAHLI_IP` in the Compose environment to the private IP serving HTTPS for `narasiahli.qudo.id`. Compose adds a host mapping for this domain, so the application can reach the existing ingress even when the server DNS resolver is unavailable.
