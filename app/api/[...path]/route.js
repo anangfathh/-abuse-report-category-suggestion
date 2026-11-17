@@ -80,6 +80,12 @@ async function handle(req, context) {
       if (!result.changes) fail(404, 'Pengguna tidak tersedia.');
       await db().prepare('DELETE FROM sessions WHERE user_id=?').run(id); await audit(user, 'update_user', id, 200); return json({ ok: true });
     }
+    if (path === '/api-history' && method === 'GET') {
+      const q = new URL(req.url).searchParams;
+      const limit = z.coerce.number().int().min(1).max(100).parse(q.get('limit') || 25);
+      const offset = z.coerce.number().int().min(0).max(1000000).parse(q.get('offset') || 0);
+      return json(await upstream(user, `/history?limit=${limit}&offset=${offset}`, { moderation: true }));
+    }
     if (path === '/submissions' && method === 'GET') {
       const items = await db().prepare('SELECT id,idem,service_id,status,created FROM submissions WHERE user_id=? AND tenant=? ORDER BY created DESC LIMIT 100').all(user.id, user.tenant);
       return json({ items, scope: '100 submission terakhir milik akun ini; bukan riwayat global service' });

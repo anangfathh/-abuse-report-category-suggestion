@@ -137,3 +137,7 @@ For Docker deployments, set `NARASIAHLI_IP` in the Compose environment to the pr
 ## PostgreSQL migration
 
 Aplikasi membutuhkan `APP_DATABASE_URL` yang menunjuk ke database khusus `abuse_reporter_db` dan skema `abuse_reporter` dengan izin untuk akun aplikasi. Data review Narasiahli tetap berada di database Narasiahli `multiagent_db`, skema `moderation_review`. Skrip `scripts/migrate_sqlite_to_postgres.py` menyalin snapshot SQLite ke skema baru tanpa mengubah skema PostgreSQL yang sudah ada; jalankan hanya saat penulis dihentikan, dan verifikasi serta simpan backup sebelum peralihan.
+
+## Riwayat berdasarkan API key
+
+Halaman Submission menampilkan riwayat klasifikasi Narasiahli untuk key integrasi organisasi dan riwayat submission akun aplikasi secara terpisah. Riwayat API dapat diakses pengguna dalam organisasi yang memakai key tersebut; key tidak dikirim ke browser. Klasifikasi sebelum fitur riwayat diaktifkan tidak otomatis muncul.

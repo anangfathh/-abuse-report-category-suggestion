@@ -20,8 +20,10 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
   const upstream=createServer(async(req,res)=>{
     let raw='';for await(const chunk of req)raw+=chunk;let body=raw?JSON.parse(raw):null;
     const url=new URL(req.url,'http://fixture'),key=req.headers['x-api-key'],tenant=key?.startsWith('b-')?'b':'a';
+    url.pathname=url.pathname.replace(/^\/api\/v1\/external\/moderation-review/, '').replace(/^\/api\/v1\/external\/moderation(?=\/history)/, '');
     calls.push({path:url.pathname,method:req.method,tenant,body,key});
     const send=(status,data,headers={})=>{res.writeHead(status,{'content-type':'application/json',...headers});res.end(JSON.stringify(data));};
+    if(url.pathname==='/history')return send(200,{items:[{id:'fixture-request',created_at:'2026-11-17T00:00:00Z',input:{content:'Contoh riwayat API'},result:{status:'no_violation',explanation:'Tidak ditemukan pelanggaran.',findings:[]}}],total:1});
     if(url.pathname==='/v1/taxonomy')return send(200,taxonomy);
     if(url.pathname==='/v1/classifications'&&req.method==='POST'){
       const idem=tenant+':'+req.headers['idempotency-key'];
@@ -65,7 +67,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
   upstream.listen(0,'127.0.0.1');await once(upstream,'listening');
   const probe=createServer();probe.listen(0,'127.0.0.1');await once(probe,'listening');const port=probe.address().port;await new Promise(r=>probe.close(r));
   const origin='http://127.0.0.1:'+port,base='http://127.0.0.1:'+upstream.address().port;
-  const app=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{cwd:process.cwd(),env:{...process.env,NODE_ENV:'production',APP_ORIGIN:origin,COOKIE_SECURE:'false',MODERATION_TENANTS_JSON:JSON.stringify({a:{baseUrl:base,clientKey:'a-client-fixture',reviewerKey:'a-reviewer-fixture'},b:{baseUrl:base,clientKey:'b-client-fixture',reviewerKey:'b-reviewer-fixture'}})},stdio:['ignore','pipe','pipe']});
+  const app=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{cwd:process.cwd(),env:{...process.env,NODE_ENV:'production',APP_ORIGIN:origin,COOKIE_SECURE:'false',MODERATION_TENANTS_JSON:JSON.stringify({a:{baseUrl:base+'/api/v1/external/moderation-review',clientKey:'a-client-fixture',reviewerKey:'a-reviewer-fixture'},b:{baseUrl:base+'/api/v1/external/moderation-review',clientKey:'b-client-fixture',reviewerKey:'b-reviewer-fixture'}})},stdio:['ignore','pipe','pipe']});
   let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);
   t.after(async()=>{app.kill('SIGTERM');await Promise.race([once(app,'exit'),new Promise(r=>setTimeout(r,3000))]);upstream.closeAllConnections();await new Promise(r=>upstream.close(r));await db().close();rmSync(directory,{recursive:true,force:true});});
   for(let i=0;i<100;i++){try{if((await fetch(origin+'/api/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));if(i===99)throw Error('Next startup failed: '+logs);}
@@ -87,6 +89,10 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
   });
   const submit=async(content,actor='operator',key=randomUUID())=>request('/classifications',{actor,method:'POST',body:{platform:'x',content,context:'',context_key:'',external_reference_id:''},idem:key});
   let reviewId,caseId,knowledgeId;
+  await t.test('API key history uses the server-side integration key',async()=>{
+    const r=await request('/api-history'); assert.equal(r.status,200); assert.equal(r.data.items[0].input.content,'Contoh riwayat API');
+    assert.equal(JSON.stringify(r.data).includes('a-client-fixture'),false);
+  });
   await t.test('direct finals, unknown response idempotency, tenant/ownership isolation',async()=>{
     for(const content of ['safe','violation','exact','similar','legacy']){const r=await submit(content);assert.equal(r.status,200);assert.equal(r.data.status,'completed');if(content==='exact')assert.equal(r.data.prediction,null);}
     const idempotency=randomUUID(),lost=await submit('lost','operator',idempotency);assert.equal(lost.status,504);assert.ok(lost.data.submission_id);
@@ -155,6 +161,10 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
       await page.setViewportSize({width:1440,height:1050});
       await page.getByRole('button',{name:'Klasifikasi baru',exact:false}).click();
 
+      await page.getByRole('button',{name:'Submission saya'}).click();
+      await expect(page.getByRole('heading',{name:'Riwayat API key'})).toBeVisible();
+      await expect(page.getByText('Contoh riwayat API').first()).toBeVisible();
+      await page.getByRole('button',{name:'Klasifikasi baru',exact:false}).click();
       await page.getByLabel('Teks konten').fill('legacy');
       await page.getByRole('button',{name:'Analisis konten ↗'}).click();
       await expect(page.getByText('Tidak ditemukan pelanggaran',{exact:true})).toBeVisible();
