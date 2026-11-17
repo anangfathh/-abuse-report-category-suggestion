@@ -18,7 +18,7 @@ Deployment Docker: **https://abuse-reporter.qudo.id**. Detail routing/TLS/operas
 
 ## Menjalankan
 
-Node **24+**, npm. Tidak membutuhkan database/service berbayar tambahan. Next.js/React/Zod maintained; PostgreSQL menyimpan user/session, audit aplikasi dan ledger submission dalam skema `abuse_reporter` yang terisolasi.
+Node **24+**, npm. Tidak membutuhkan database/service berbayar tambahan. Next.js/React/Zod maintained; PostgreSQL menyimpan user/session, audit aplikasi dan ledger submission dalam database `abuse_reporter_db` dan skema `abuse_reporter` yang terisolasi.
 
 ```sh
 npm ci
@@ -32,7 +32,7 @@ Buka `http://localhost:3040` (atau ganti APP_ORIGIN dan alamat browser agar pers
 ```dotenv
 APP_ORIGIN=http://localhost:3040
 COOKIE_SECURE=false
-APP_DATABASE_URL=postgresql://app_user:replace-me@localhost:5432/app_database
+APP_DATABASE_URL=postgresql://app_user:replace-me@localhost:5432/abuse_reporter_db
 MODERATION_TENANTS_JSON={"team-a":{"baseUrl":"http://127.0.0.1:8030","clientKey":"<client-key-server-side>","reviewerKey":"<shared-reviewer-key-server-side>","reviewerKeys":{}}}
 ```
 
@@ -136,4 +136,4 @@ For Docker deployments, set `NARASIAHLI_IP` in the Compose environment to the pr
 
 ## PostgreSQL migration
 
-Aplikasi membutuhkan `APP_DATABASE_URL` dan skema `abuse_reporter` yang telah dibuat dengan izin untuk akun aplikasi. Skrip `scripts/migrate_sqlite_to_postgres.py` menyalin snapshot SQLite ke skema baru tanpa mengubah skema PostgreSQL yang sudah ada; jalankan hanya saat penulis dihentikan, dan verifikasi serta simpan backup sebelum peralihan.
+Aplikasi membutuhkan `APP_DATABASE_URL` yang menunjuk ke database khusus `abuse_reporter_db` dan skema `abuse_reporter` dengan izin untuk akun aplikasi. Data review Narasiahli tetap berada di database Narasiahli `multiagent_db`, skema `moderation_review`. Skrip `scripts/migrate_sqlite_to_postgres.py` menyalin snapshot SQLite ke skema baru tanpa mengubah skema PostgreSQL yang sudah ada; jalankan hanya saat penulis dihentikan, dan verifikasi serta simpan backup sebelum peralihan.
