@@ -1,0 +1,48 @@
+/* Astryx: urutan import menentukan cascade layer (reset → komponen → tema). */
+@import '@astryxdesign/core/reset.css';
+@import '@astryxdesign/core/astryx.css';
+@import '@astryxdesign/theme-neutral/theme.css';
+
+/* CSP aplikasi hanya mengizinkan font dari origin sendiri, jadi Figtree dimuat
+   lokal lewat @fontsource-variable (bukan Google Fonts seperti fonts.css tema). */
+:root,
+[data-astryx-theme] {
+  --font-family-body: 'Figtree Variable', Figtree, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-family-heading: var(--font-family-body);
+}
+
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--font-family-body);
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Utilitas kecil untuk konten yang tidak punya padanan komponen. */
+.mono { font-family: var(--font-family-code); overflow-wrap: anywhere; }
+.prewrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.brand-mark {
+  display: grid; place-items: center; flex: none;
+  width: 28px; height: 28px; border-radius: var(--radius-element);
+  background: var(--color-accent); color: var(--color-on-accent);
+  font-weight: 700; font-size: 12px; letter-spacing: -0.02em; line-height: 1;
+}
+
+.login-page { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.login-intro {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 40px;
+  padding: 48px; background: var(--color-background-muted);
+}
+.login-form { display: grid; place-items: center; padding: 32px 24px; }
+.login-form > * { width: 100%; max-width: 380px; }
+@media (max-width: 860px) {
+  .login-page { grid-template-columns: 1fr; }
+  .login-intro { min-height: 0; padding: 28px 24px; gap: 20px; }
+  .login-intro-copy, .login-intro-foot { display: none; }
+}
+
+.source-content { font-size: var(--font-size-lg, 16px); }
+
+.boot { display: grid; place-items: center; min-height: 100dvh; }

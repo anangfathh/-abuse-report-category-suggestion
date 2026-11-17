@@ -1,10 +1,14 @@
-# Tilik — HITL Kategorisasi X
+# Abuse Reporter — HITL Kategorisasi X
 
 Aplikasi web **mandiri** untuk PRD pada `docs/PRD-HITL-Kategorisasi-X.md`. Frontend berbahasa Indonesia + BFF Next.js/React; tidak mengimpor kode, auth, database, agent, atau knowledge NarasiAhli. Moderation Review Service tetap source of truth classifier, antrean manusia, keputusan, dan knowledge. Tidak mengirim laporan ke X.
 
 Deployment Docker: **https://abuse-reporter.qudo.id**. Detail routing/TLS/operasional ada di [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Akses memerlukan akun dari admin; credential tidak disertakan di repository.
 
 **Sumber prediksi terbaru:** sesuai klarifikasi owner, prediksi baru memakai **API NarasiAhli lama** `/api/v1/external/moderation/classify`. Lapisan review tetap menangani antrean/knowledge. Detail alur, key, opt-in tenant dan bukti panggilan ada di [docs/NARASIAHLI-PREDICTION.md](docs/NARASIAHLI-PREDICTION.md). Klarifikasi ini menggantikan batas “tidak memanggil API NarasiAhli” pada handoff awal; data/auth aplikasi tetap terpisah.
+
+## Antarmuka (Astryx)
+
+UI memakai [Astryx](https://astryx.atmeta.com) (`@astryxdesign/core` + `@astryxdesign/theme-neutral`, React 19): `AppShell`/`SideNav` untuk kerangka, `Table`, `Selector`/`MultiSelector`, `TextArea`, `Dialog`/`AlertDialog`, `Banner`, `Badge`, `Pagination`, dan seterusnya; mode terang/gelap mengikuti sistem. Font Figtree dimuat lokal lewat `@fontsource-variable/figtree` karena CSP hanya mengizinkan `font-src 'self'`. Presentasi ada di `app/ui.jsx` dan `app/views.jsx`; logika/polling tetap di `app/page.jsx`. Cek API komponen dengan `npx astryx component <Nama>`.
 
 ## Fitur
 
@@ -68,9 +72,9 @@ npm start
 Gunakan HTTPS, `APP_ORIGIN=https://domain-anda`, **COOKIE_SECURE=true**, reverse proxy timeout minimal **300 detik**, dan pembatasan akses server/volume aplikasi. Local CLI `start` bind loopback; Docker bind 0.0.0.0 di dalam container, publish hanya ke loopback bila di belakang proxy. Jangan memakai platform serverless dengan timeout di bawah 240 detik untuk inference sinkron ini. Bila platform memiliki limit pendek, perlu implementasi transport job durable terpisah sebelum dipakai; belum disertakan.
 
 ```sh
-docker build -t tilik:local .
+docker build -t abuse-reporter:local .
 docker run --rm -p 127.0.0.1:3040:3040 --env-file .env.local \
-  -v tilik-data:/app/data tilik:local
+  -v abuse-reporter-data:/app/data abuse-reporter:local
 ```
 
 Provision admin sebelum membuka aplikasi menggunakan CLI di container dengan volume yang sama. Jalankan satu instance aplikasi dengan PostgreSQL; bukan jaminan deployment horizontal. Runtime/test tidak mengubah deployment service moderation atau NarasiAhli.

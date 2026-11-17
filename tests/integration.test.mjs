@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 
 test('real BFF: login, roles, tenants, direct final, review/correction, retries and error recovery', {timeout:120000}, async t => {
-  const directory=mkdtempSync(join(tmpdir(),'tilik-test-'));
+  const directory=mkdtempSync(join(tmpdir(),'abuse-reporter-test-'));
   process.env.APP_DATABASE_PATH=join(directory,'test.sqlite3');
   const {db,hashPassword}=await import('../lib/store.mjs');
   const password='Fixture-only-password-9021';
@@ -129,7 +129,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
     assert.equal((await request('/reviews/id/claim',{actor:'reviewer',method:'POST'})).status,404);
   });
   await t.test('keys not present in browser responses or HTML, admin tenant cannot be injected',async()=>{
-    const html=await (await fetch(origin)).text();assert.ok(html.includes('Tilik'));
+    const html=await (await fetch(origin)).text();assert.ok(html.includes('Abuse Reporter'));
     for(const p of ['/me','/submissions','/taxonomy']){const r=await request(p);const serialized=JSON.stringify(r.data);assert.equal(serialized.includes('a-client-fixture'),false);assert.equal(serialized.includes('a-reviewer-fixture'),false);}
     assert.equal((await request('/users',{actor:'admin',method:'POST',body:{email:'new@example.test',name:'New operator',role:'operator',password,tenant:'b'}})).status,422);
     const u=await request('/users',{actor:'admin',method:'POST',body:{email:'new@example.test',name:'New operator',role:'operator',password}});assert.equal(u.status,201);
@@ -146,7 +146,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
       await page.goto(origin);
       await page.getByLabel('Email',{exact:true}).fill('admin@example.test');
       await page.getByLabel('Kata sandi',{exact:true}).fill(password);
-      await page.getByRole('button',{name:'Masuk ↗',exact:true}).click();
+      await page.getByRole('button',{name:'Masuk',exact:true}).click();
       await expect(page.getByRole('heading',{name:'Abuse report category suggestion'})).toBeVisible();
       await page.screenshot({path:'docs/screenshots/klasifikasi-desktop.png',fullPage:true});
       await page.getByRole('button',{name:'Taxonomy kebijakan'}).click();
@@ -166,20 +166,20 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
       await expect(page.getByText('Contoh riwayat API').first()).toBeVisible();
       await page.getByRole('button',{name:'Klasifikasi baru',exact:false}).click();
       await page.getByLabel('Teks konten').fill('legacy');
-      await page.getByRole('button',{name:'Analisis konten ↗'}).click();
+      await page.getByRole('button',{name:'Analisis konten'}).click();
       await expect(page.getByText('Tidak ditemukan pelanggaran',{exact:true})).toBeVisible();
       await expect(page.getByText('API NarasiAhli · prediksi final',{exact:true})).toBeVisible();
       await expect(page.getByText('legacy-fixture-request',{exact:true})).toBeVisible();
       await page.getByRole('button',{name:'Mulai submission baru',exact:true}).click();
       await page.getByLabel('Teks konten').fill('review');
-      await page.getByRole('button',{name:'Analisis konten ↗'}).click();
+      await page.getByRole('button',{name:'Analisis konten'}).click();
       await expect(page.getByText('Menunggu review manusia',{exact:true})).toBeVisible();
-      await page.getByRole('button',{name:'Buka workspace reviewer ↗'}).click();
+      await page.getByRole('button',{name:'Buka workspace reviewer'}).click();
       await expect(page.getByRole('heading',{name:'Keputusan reviewer',exact:true})).toBeVisible();
-      await page.getByLabel('Tidak melanggar',{exact:true}).check();
+      await page.getByText('Tidak melanggar',{exact:true}).click();
       await page.getByLabel('Alasan keputusan').fill('Reviewer manusia memeriksa konteks fixture; tidak ditemukan unsur pelanggaran.');
       await page.getByLabel('Catatan verifikasi').fill('Konteks fixture diperiksa oleh reviewer untuk pengujian browser.');
-      await page.getByLabel('Saya telah memeriksa konten dan konteks yang relevan serta audit terbaru.').check();
+      await page.getByText('Saya telah memeriksa konten dan konteks yang relevan serta audit terbaru.').click();
       await page.getByRole('button',{name:'Simpan keputusan manusia',exact:true}).click();
       await expect(page.getByRole('heading',{name:'Koreksi keputusan'})).toBeVisible();
       await expect(page.getByText('Keputusan tersimpan.',{exact:false})).toBeVisible();

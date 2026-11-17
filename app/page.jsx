@@ -1,11 +1,40 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { stateOf, policyLink, knowledgeState, filterTaxonomy } from '../lib/domain.mjs';
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { AppShell } from '@astryxdesign/core/AppShell';
+import { Avatar } from '@astryxdesign/core/Avatar';
+import { Badge } from '@astryxdesign/core/Badge';
+import { BreadcrumbItem, Breadcrumbs } from '@astryxdesign/core/Breadcrumbs';
+import { Button } from '@astryxdesign/core/Button';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack } from '@astryxdesign/core/HStack';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Layout, LayoutContent } from '@astryxdesign/core/Layout';
+import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from '@astryxdesign/core/SideNav';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { StackItem } from '@astryxdesign/core/Stack';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { VStack } from '@astryxdesign/core/VStack';
+import { BookMarked, Brain, History as HistoryIcon, Inbox, LogOut, ScanSearch, Send, Users as UsersIcon } from 'lucide-react';
+import { Mono, Notice, PageHeader, Panel, Result } from './ui.jsx';
+import { ApiHistory, History, KnowledgeList, Login, ReviewQueue, ReviewWorkspace, Taxonomy, Users } from './views.jsx';
 
-const stateNames = { violation: 'Pelanggaran ditemukan', no_violation: 'Tidak ditemukan pelanggaran', pending_review: 'Menunggu review manusia', processing: 'Sedang diproses', failed: 'Proses gagal', invalid: 'Hasil belum valid' };
-const sourceNames = { llm: 'Model · final tanpa eskalasi', human: 'Keputusan manusia', human_knowledge_exact: 'Knowledge manusia · identik', human_knowledge_similar: 'Knowledge manusia · mirip' };
-const date = value => value ? new Date(value * 1000).toLocaleString('id-ID', { timeZoneName: 'short' }) : '—';
 const blank = { platform: 'x', content: '', context: '', context_key: '', external_reference_id: '' };
+const headings = {
+  new: ['KLASIFIKASI KONTEN', 'Abuse report category suggestion', 'Kenali kategori yang relevan. Beri ruang untuk pertimbangan manusia.'],
+  taxonomy: ['PETA KEBIJAKAN', 'Taxonomy kebijakan X', 'Jelajahi kategori, rincian, dan sumber kebijakan yang digunakan untuk klasifikasi.'],
+  history: ['AKTIVITAS ANDA', 'Submission saya', 'Referensi yang dikirim melalui akun ini, bukan riwayat global service.'],
+  reviews: ['HUMAN IN THE LOOP', 'Antrean review', 'Tinjau kasus yang membutuhkan konteks dan penilaian manusia.'],
+  workspace: ['WORKSPACE REVIEWER', 'Keputusan yang bisa ditelusuri', 'Periksa bukti, konteks, dan kebijakan sebelum memutuskan.'],
+  knowledge: ['PENGETAHUAN TERVERIFIKASI', 'Knowledge manusia', 'Keputusan reviewer, provenance, dan masa berlaku reuse.'],
+  users: ['ADMINISTRASI', 'Pengguna & peran', 'Akses manusia dibatasi organisasi dan role pada server.'],
+};
+
 function usePolling(fn, delay, enabled) {
   const callback = useRef(fn); callback.current = fn;
   useEffect(() => {
@@ -20,24 +49,6 @@ function usePolling(fn, delay, enabled) {
     return () => { cancelled = true; clearTimeout(timer); };
   }, [delay, enabled]);
 }
-function Message({ children, kind = 'info' }) { return children ? <div className={`message ${kind}`} role={kind === 'error' ? 'alert' : 'status'}>{children}</div> : null; }
-function Badge({ state }) { return <span className={`badge ${state}`}>{stateNames[state] || state}</span>; }
-function Findings({ value }) {
-  if (!value) return null;
-  return <><p className="explanation">{value.explanation}</p>{(value.findings || []).map((f, i) => {
-    const url = policyLink(f.policy?.url);
-    return <article className="finding" key={f.rule_id || i}><div className="eyebrow">{f.category || f.category_id}</div><h3>{f.subcategory || f.rule_id}</h3><p>{f.detail}</p>{(f.evidence || []).map((q, j) => <blockquote key={j}>{q}</blockquote>)}<p>{f.rationale}</p>{url && <a href={url} target="_blank" rel="noopener noreferrer">Baca kebijakan ↗</a>}</article>;
-  })}{value.missing_context?.length > 0 && <div className="message warning"><strong>Konteks yang perlu diperiksa</strong><ul>{value.missing_context.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}</>;
-}
-function Result({ value, openReview }) {
-  if (!value) return <div className="empty"><div className="empty-symbol">⌕</div><h3>Mulai dari sebuah konten.</h3><p>Kategori, bukti, dan alasan akan muncul di sini.<br />Kasus ambigu diteruskan untuk review manusia.</p><div className="step"><span>01</span> Masukkan konten <span>02</span> Periksa analisis</div></div>;
-  const state = stateOf(value), final = ['violation', 'no_violation'].includes(state);
-  return <div className="result"><div className="row"><Badge state={state} /><span className="muted mono">{value.id?.slice(0, 8)}</span></div>
-    <p className="muted">{final ? value.result?.prediction_provider === 'narasiahli' && value.decision_source === 'llm' ? 'API NarasiAhli · prediksi final' : sourceNames[value.decision_source] || value.decision_source : 'Belum ada keputusan final'}</p>
-    {final ? <Findings value={value.result} /> : state === 'pending_review' ? <><Message kind="warning">Menunggu review manusia. Analisis di bawah adalah prediksi awal model, bukan keputusan final.</Message><Findings value={value.prediction} />{value.review_id && openReview && <button className="primary" onClick={() => openReview(value.review_id)}>Buka workspace reviewer ↗</button>}</> : <Message kind={state === 'failed' || state === 'invalid' ? 'error' : 'info'}>{value.error || 'Hasil final belum tersedia. Status akan diperbarui saat halaman ini aktif.'}</Message>}
-    <dl className="meta"><dt>ID klasifikasi</dt><dd className="mono">{value.id}</dd><dt>Dibuat</dt><dd>{date(value.created_at)}</dd>{(value.result?.prediction_provider || value.prediction?.prediction_provider) && <><dt>Sumber prediksi</dt><dd>API NarasiAhli</dd><dt>Request API</dt><dd className="mono">{value.result?.prediction_request_id || value.prediction?.prediction_request_id}</dd></>}<dt>Kebijakan</dt><dd>{value.result?.taxonomy_version || value.prediction?.taxonomy_version || '—'}</dd>{value.external_reference_id && <><dt>Referensi</dt><dd>{value.external_reference_id}</dd></>}</dl>
-  </div>;
-}
 
 export default function App() {
   const [user, setUser] = useState(null), [boot, setBoot] = useState(true), [csrf, setCsrf] = useState('');
@@ -45,9 +56,10 @@ export default function App() {
   const [taxonomy, setTaxonomy] = useState(null), [form, setForm] = useState(blank), [attempt, setAttempt] = useState(null), [result, setResult] = useState(null);
   const [rows, setRows] = useState([]), [total, setTotal] = useState(0), [offset, setOffset] = useState(0), [queue, setQueue] = useState('pending');
   const [review, setReview] = useState(null), [notice, setNotice] = useState(''), [retryAt, setRetryAt] = useState(0), [clock, setClock] = useState(Date.now());
-  const [previewInput, setPreviewInput] = useState(null);
+  const [previewInput, setPreviewInput] = useState(null), [confirmNew, setConfirmNew] = useState(false);
   const loadingRef = useRef(new Set()), listVersion = useRef(0), rateLimit = useRef(0), submitting = useRef(false);
   const canReview = user && user.role !== 'operator', isAdmin = user?.role === 'admin';
+
   async function api(path, { method = 'GET', body, key, login = false } = {}) {
     if (Date.now() < rateLimit.current) throw Error('Tunggu sebelum mencoba lagi.');
     const headers = {};
@@ -75,6 +87,7 @@ export default function App() {
   useEffect(() => { bootstrap(); }, []);
   useEffect(() => { if (!retryAt) return; const t = setInterval(() => setClock(Date.now()), 1000); return () => clearInterval(t); }, [retryAt]);
   const remaining = Math.max(0, Math.ceil((retryAt - clock) / 1000));
+
   async function loadList(target = page, skip = offset) {
     if (Date.now() < rateLimit.current) return;
     const generation = listVersion.current;
@@ -90,6 +103,7 @@ export default function App() {
   usePolling(() => loadList(), 30000, Boolean(user && page === 'reviews'));
   usePolling(async () => { try { setResult(await api('/classifications/' + result.id)); } catch (e) { setError(e.message); throw e; } }, 15000, Boolean(user && page === 'new' && result && ['pending_review', 'processing'].includes(result.status)));
   usePolling(async () => { const updated = await api('/reviews/' + review.id); setReview(updated); }, 15000, Boolean(user && page === 'workspace' && review?.status === 'pending'));
+
   function navigate(target) { if (submitting.current) return; setPage(target); setOffset(0); setError(''); setNotice(''); }
   async function openReview(id) { setBusy(true); setError(''); try { const data = await api('/reviews/' + id); setReview(data); setPage('workspace'); } catch (e) { setError(e.message); } finally { setBusy(false); } }
   async function submit(e) {
@@ -113,108 +127,127 @@ export default function App() {
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
   function fresh() { setForm(blank); setAttempt(null); setResult(null); setPreviewInput(null); setError(''); setNotice(''); }
+  function startNew() { if (!result || ['pending_review', 'processing'].includes(result.status)) setConfirmNew(true); else fresh(); }
   async function signOut() { try { await api('/logout', { method: 'POST' }); setUser(null); setCsrf(''); fresh(); setRows([]); setReview(null); setTaxonomy(null); } catch (e) { setError(e.message); } }
-  if (boot) return <div className="boot">Memuat workspace…</div>;
+  const reloadTaxonomy = async () => { try { setTaxonomy(await api('/taxonomy')); setError(''); } catch (e) { setError(e.message); } };
+
+  if (boot) return <div className="boot"><Spinner size="lg" label="Memuat workspace…" /></div>;
   if (!user) return <Login onLogin={async body => { const data = await api('/login', { method: 'POST', body, login: true }); setUser(data.user); setCsrf(data.csrf); await bootstrap(); }} />;
-  const headings = { new: ['KLASIFIKASI KONTEN', 'Abuse report category suggestion', 'Kenali kategori yang relevan. Beri ruang untuk pertimbangan manusia.'], taxonomy: ['PETA KEBIJAKAN', 'Taxonomy kebijakan X', 'Jelajahi kategori, rincian, dan sumber kebijakan yang digunakan untuk klasifikasi.'], history: ['AKTIVITAS ANDA', 'Submission saya', 'Referensi yang dikirim melalui akun ini, bukan riwayat global service.'], reviews: ['HUMAN IN THE LOOP', 'Antrean review', 'Tinjau kasus yang membutuhkan konteks dan penilaian manusia.'], workspace: ['WORKSPACE REVIEWER', 'Keputusan yang bisa ditelusuri', 'Periksa bukti, konteks, dan kebijakan sebelum memutuskan.'], knowledge: ['PENGETAHUAN TERVERIFIKASI', 'Knowledge manusia', 'Keputusan reviewer, provenance, dan masa berlaku reuse.'], users: ['ADMINISTRASI', 'Pengguna & peran', 'Akses manusia dibatasi organisasi dan role pada server.'] };
+
   const heading = headings[page];
-  return <div className="shell"><aside><a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('new'); }}><span className="brand-mark">t</span>tilik<span className="brand-dot">.</span></a><div className="workspace-label">CONTENT INTELLIGENCE <span>WORKSPACE</span></div>
-    <nav aria-label="Navigasi utama">{[['new', '⌕', 'Klasifikasi baru'], ['history', '▤', 'Submission saya'], ['taxonomy', '☷', 'Taxonomy kebijakan'], ...(canReview ? [['reviews', '◫', 'Antrean review'], ['knowledge', '◇', 'Knowledge']] : []), ...(isAdmin ? [['users', '⚙', 'Pengguna & peran']] : [])].map(([id, icon, title]) => <button disabled={busy} className={page === id || id === 'reviews' && page === 'workspace' ? 'nav-active' : ''} key={id} onClick={() => navigate(id)}><span>{icon}</span>{title}</button>)}<button className="mobile-signout" disabled={busy} onClick={signOut}>↗ Keluar</button></nav>
-    <div className="side-note"><span className="small-dot" /> Human judgment matters<p>Prediksi membantu. Manusia memberi konteks.</p></div><div className="identity"><div className="avatar">{user.name.slice(0, 1).toUpperCase()}</div><div><strong>{user.name}</strong><small>{user.role} · {user.tenant}</small></div><button title="Keluar" aria-label="Keluar" disabled={busy} onClick={signOut}>↗</button></div>
-  </aside><main><div className="topbar"><span>Workspace <span className="muted">/</span> {page === 'new' ? 'Category suggestion' : heading[1]}</span><span className="platform-pill">𝕏 <span>Policy mapping</span></span></div>
-    <header><div className="eyebrow">{heading[0]}</div><h1>{heading[1]}</h1><p>{heading[2]}</p></header>
-    <Message kind="error">{error}</Message><Message>{notice}</Message>{remaining > 0 && <Message kind="warning">Batas permintaan tercapai. Coba lagi dalam {remaining} detik.</Message>}
-    {page === 'new' && <><div className="content-grid"><section className="panel"><div className="panel-title"><span className="section-number">01</span><h2>Konten yang ingin diperiksa</h2><span className="platform-mini">𝕏</span></div><form onSubmit={submit}>
-      <label htmlFor="content">Teks konten <span className="required">*</span><span className="counter">{form.content.length.toLocaleString('id-ID')} / 8.000</span></label><textarea id="content" rows={7} value={form.content} disabled={busy || Boolean(attempt)} required maxLength={8000} placeholder="Tempel teks postingan atau balasan yang ingin ditinjau…" onChange={e => setForm({ ...form, content: e.target.value })} />
-      <label htmlFor="context">Konteks tambahan <span className="optional">Opsional</span></label><textarea id="context" rows={3} maxLength={3000} disabled={busy || Boolean(attempt)} value={form.context} placeholder="Siapa yang menjadi sasaran? Apa konteks percakapannya?" onChange={e => setForm({ ...form, context: e.target.value })} />
-      <details><summary>Referensi & identitas konteks</summary><label htmlFor="context-key">Context key</label><input id="context-key" maxLength={200} disabled={busy || Boolean(attempt)} value={form.context_key} onChange={e => setForm({ ...form, context_key: e.target.value })} placeholder="post-123:target-456:evidence-v1" /><p className="help">Identitas konteks yang stabil, misalnya post, sasaran, dan versi bukti. Jangan gunakan satu nilai untuk semua kasus.</p><label htmlFor="external-id">Referensi eksternal</label><input id="external-id" maxLength={200} disabled={busy || Boolean(attempt)} value={form.external_reference_id || ''} onChange={e => setForm({ ...form, external_reference_id: e.target.value })} /></details>
-      <div className="form-foot"><span>⌁ Teks saja · tidak membuka tautan/media</span><button className="primary" disabled={busy || remaining > 0 || Boolean(result)} type="submit">{busy ? 'Menganalisis…' : attempt ? 'Retry payload yang sama ↗' : 'Analisis konten ↗'}</button></div>
-      {attempt && <><p className="help mono">Request {attempt.key.slice(0, 8)} · tersimpan server-side</p><button type="button" className="text-button" disabled={busy} onClick={() => { if (!result || ['pending_review','processing'].includes(result.status)) { if (!window.confirm('Submission sebelumnya belum final. Referensinya tetap ada di Submission saya. Mulai submission baru?')) return; } fresh(); }}>Mulai submission baru{result?.status === 'failed' ? ' dengan key baru' : ''}</button></>}
-    </form></section><section className="panel output"><div className="panel-title"><span className="section-number">02</span><h2>Hasil analisis</h2><span className="muted">✧</span></div>{busy && !result ? <div className="empty"><div className="spinner" /><h3>Membaca konten dan konteks…</h3><p>Analisis bisa memerlukan beberapa menit. Referensi submission tetap tersimpan jika koneksi terputus.</p></div> : <Result value={result} openReview={canReview ? openReview : null} />}</section></div>
-      {previewInput && <section className="panel compact"><h3>Konten submission</h3><p className="prewrap">{previewInput.content}</p><p className="muted prewrap">{previewInput.context}</p></section>}
-      <section className="taxonomy-preview"><div><div className="eyebrow">KEBIJAKAN, BUKAN ASUMSI</div><h2>Kategori dimuat dari taxonomy service.</h2><p>Snapshot kebijakan, bukan replika lengkap menu Report X atau keputusan resmi platform.</p></div><div className="chips">{taxonomy ? taxonomy.categories.map(c => <span key={c.id}>{c.label}</span>) : <button onClick={async () => { try { setTaxonomy(await api('/taxonomy')); setError(''); } catch (e) { setError(e.message); } }}>Muat ulang taxonomy</button>}</div></section></>}
-    {page === 'taxonomy' && <Taxonomy taxonomy={taxonomy} reload={async () => { try { setTaxonomy(await api('/taxonomy')); setError(''); } catch (e) { setError(e.message); } }} />}
-    {page === 'history' && <ApiHistory api={api} />}
-    {page === 'history' && <section className="panel"><ListHead title="Submission akun ini" total={total} reload={() => loadList()} /><div className="table-wrap"><table><thead><tr><th>Referensi aplikasi</th><th>Status terakhir / cache</th><th>Dikirim</th><th /></tr></thead><tbody>{rows.map(r => <tr key={r.id}><td className="mono">{r.service_id?.slice(0, 12) || r.id.slice(0, 12)}</td><td>{r.status}</td><td>{new Date(r.created).toLocaleString('id-ID')}</td><td><button onClick={() => viewSubmission(r)}>Periksa status terbaru ↗</button></td></tr>)}</tbody></table></div>{!rows.length && <div className="empty small">Belum ada submission dari akun ini.</div>}<p className="help">Maksimal 100 referensi terbaru. Hasil final selalu dimuat ulang dari service saat dibuka.</p></section>}
-    {page === 'reviews' && <section className="panel"><ListHead title="Review manusia" total={total} reload={() => loadList()} /><div className="tabs">{[['pending','Pending'],['completed','Selesai']].map(([value,label]) => <button key={value} className={queue === value ? 'selected' : ''} onClick={() => { setQueue(value); setOffset(0); }}>{label}</button>)}</div><div className="review-list">{rows.map(r => <button className="review-row" key={r.id} onClick={() => openReview(r.id)}><span className="review-icon">◫</span><div><strong>{r.input?.content?.slice(0, 170)}</strong><small>{date(r.created)} · {r.status} · {r.id.slice(0, 8)}</small></div><span>↗</span></button>)}</div>{!rows.length && <div className="empty small">Tidak ada review pada halaman ini.</div>}<Pagination offset={offset} total={total} setOffset={setOffset} /></section>}
-    {page === 'workspace' && review && <ReviewWorkspace key={review.id} review={review} taxonomy={taxonomy} api={api} setReview={setReview} setError={setError} attribution={attribution} limited={remaining > 0} />}
-    {page === 'knowledge' && <section className="panel"><ListHead title="Keputusan manusia yang tersimpan" total={total} reload={() => loadList()} />{rows.map(item => <Knowledge key={item.id} item={item} admin={isAdmin} api={api} refresh={() => loadList()} setError={setError} />)}{!rows.length && <div className="empty small">Belum ada knowledge pada halaman ini.</div>}<Pagination offset={offset} total={total} setOffset={setOffset} /><p className="help">Revoke/expiry menghentikan reuse masa depan, bukan mengubah hasil historis. Indexing terpisah dari validitas keputusan manusia.</p></section>}
-    {page === 'users' && <Users rows={rows} user={user} api={api} refresh={() => loadList()} setError={setError} />}
-    <footer><span>tilik. <span className="muted">Human-centered content review</span></span><span>{taxonomy?.version || 'Taxonomy belum terhubung'} · Waktu lokal browser</span></footer>
-  </main></div>;
-}
-function ApiHistory({ api }) {
-  const [items, setItems] = useState([]), [total, setTotal] = useState(0), [offset, setOffset] = useState(0), [loading, setLoading] = useState(true), [error, setError] = useState('');
-  async function load() { setLoading(true); setError(''); try { const data = await api(`/api-history?limit=25&offset=${offset}`); setItems(data.items); setTotal(data.total); } catch (e) { setError(e.message); } finally { setLoading(false); } }
-  useEffect(() => { load(); }, [offset]);
-  return <section className="panel compact"><div className="list-head"><div><h2>Riwayat API key</h2><p className="muted">Klasifikasi yang menggunakan API key integrasi organisasi ini. Semua pengguna organisasi dengan akses history dapat melihatnya.</p></div><button onClick={load} disabled={loading}>↻ Muat ulang</button></div>
-    <Message kind="error">{error}</Message>{loading && <p className="muted">Memuat riwayat…</p>}
-    {!loading && !error && !items.length && <div className="empty small">Belum ada klasifikasi yang tercatat untuk API key ini.</div>}
-    {items.map(item => <details className="taxonomy-category" key={item.id}><summary><span><strong>{item.input?.content?.slice(0, 120) || 'Klasifikasi'}</strong><small>{new Date(item.created_at).toLocaleString('id-ID')} · {item.result?.status || '—'} · {item.id.slice(0, 8)}</small></span><span aria-hidden="true">⌄</span></summary><div className="taxonomy-body"><p className="prewrap">{item.input?.content}</p>{item.input?.context && <p className="prewrap muted">Konteks: {item.input.context}</p>}<Findings value={item.result} /><p className="help mono">Request API: {item.id}</p></div></details>)}
-    <Pagination offset={offset} total={total} setOffset={setOffset} /><p className="help">Riwayat mulai tercatat sejak fitur ini diaktifkan. Permintaan dari aplikasi juga dapat muncul di sini.</p></section>;
-}
-function Taxonomy({ taxonomy, reload }) {
-  const [query, setQuery] = useState('');
-  const categories = taxonomy?.categories || [];
-  const filtered = filterTaxonomy(categories, query);
-  return <section className="panel taxonomy-page">
-    <div className="list-head taxonomy-heading"><div><h2>Referensi kategori</h2><p className="muted">{taxonomy ? `${categories.length} kategori · ${categories.reduce((sum, c) => sum + c.subcategories.length, 0)} subkategori` : 'Taxonomy belum tersedia'}</p></div><button type="button" onClick={reload}>↻ Muat ulang</button></div>
-    {taxonomy && <><div className="taxonomy-meta"><span>Versi <strong>{taxonomy.version}</strong></span><span>Ditinjau <strong>{taxonomy.researched_at || '—'}</strong></span></div><p className="help">Peta kebijakan untuk membantu peninjauan, bukan keputusan resmi atau salinan lengkap menu pelaporan X.</p>
-      <label htmlFor="taxonomy-search">Cari kategori atau subkategori</label><input id="taxonomy-search" type="search" placeholder="Contoh: ancaman, identitas, atau ID rule" value={query} onChange={e => setQuery(e.target.value)} />
-      <div className="taxonomy-list">{filtered.map(category => { const source = policyLink(category.source_url); return <details className="taxonomy-category" key={category.id} open={query.trim() ? true : undefined}><summary><span><strong>{category.label}</strong><small>{category.id} · {category.subcategories.length} subkategori</small></span><span aria-hidden="true">⌄</span></summary><div className="taxonomy-body">{category.policy_title && <p className="muted">{category.policy_title}{category.source_updated ? ` · diperbarui ${category.source_updated}` : ''}</p>}{category.exceptions && <p><strong>Konteks & pengecualian:</strong> {category.exceptions}</p>}{source && <a href={source} target="_blank" rel="noopener noreferrer">Baca sumber kebijakan ↗</a>}<div className="taxonomy-rules">{category.subcategories.map(rule => <article key={rule.id}><h3>{rule.label}</h3><p>{rule.detail}</p><div className="help"><span className="mono">{rule.id}</span> · Bukti: {rule.evidence_requirement || '—'}</div></article>)}</div></div></details>; })}</div>
-      {!filtered.length && <div className="empty small">Tidak ada kategori yang cocok dengan pencarian.</div>}</>}
-    {!taxonomy && <div className="empty small">Taxonomy belum berhasil dimuat. Gunakan tombol muat ulang untuk mencoba lagi.</div>}
-  </section>;
-}
-function ListHead({ title, total, reload }) { return <div className="list-head"><div><h2>{title}</h2><p className="muted">{total} item pada cakupan ini</p></div><button onClick={() => reload().catch(() => {})}>↻ Muat ulang</button></div>; }
-function Pagination({ offset, total, setOffset }) { return <div className="pagination"><span>{total ? `${offset + 1}–${Math.min(offset + 25, total)} dari ${total}` : '0 item'}</span><button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 25))}>← Sebelumnya</button><button disabled={offset + 25 >= total} onClick={() => setOffset(offset + 25)}>Berikutnya →</button></div>; }
-function Login({ onLogin }) {
-  const [email,setEmail] = useState(''), [password,setPassword] = useState(''), [busy,setBusy] = useState(false), [error,setError] = useState('');
-  return <div className="login-page"><div className="login-intro"><div className="brand"><span className="brand-mark">t</span>tilik.</div><div><div className="eyebrow">HUMAN-CENTERED CONTENT REVIEW</div><h1>Teknologi membaca.<br />Manusia memahami.</h1><p>Workspace untuk klasifikasi konten, review yang bertanggung jawab, dan knowledge yang bisa ditelusuri.</p></div><span>𝕏 Policy mapping · Independent workspace</span></div><div className="login-form"><form onSubmit={async e => { e.preventDefault(); setBusy(true); setError(''); try { await onLogin({ email, password }); } catch (e) { setError(e.message); } finally { setBusy(false); } }}><div className="eyebrow">SELAMAT DATANG KEMBALI</div><h2>Masuk ke workspace.</h2><p className="muted">Gunakan akun yang diberikan admin organisasi Anda.</p><Message kind="error">{error}</Message><label htmlFor="email">Email</label><input id="email" type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /><label htmlFor="password">Kata sandi</label><input id="password" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /><button className="primary" disabled={busy}>{busy ? 'Memeriksa…' : 'Masuk ↗'}</button><p className="help">Akses berdasarkan role. Kunci service tetap berada di server.</p></form></div></div>;
-}
-function ReviewWorkspace({ review, taxonomy, api, setReview, setError, attribution, limited }) {
-  const [choice,setChoice] = useState(''), [rules,setRules] = useState([]), [rationale,setRationale] = useState(''), [notes,setNotes] = useState(''), [basis,setBasis] = useState('external_evidence'), [reuse,setReuse] = useState('exact'), [hours,setHours] = useState(24), [checked,setChecked] = useState(false), [busy,setBusy] = useState(false), [feedback,setFeedback] = useState(null), [conflict,setConflict] = useState(false);
-  const revision = useRef(review.revision);
-  useEffect(() => { if (revision.current !== review.revision) { setChecked(false); setConflict(true); revision.current = review.revision; } }, [review.revision]);
-  async function reload() { setReview(await api('/reviews/' + review.id)); setChecked(false); }
-  async function decide(e) {
-    e.preventDefault(); setBusy(true); setError(''); setFeedback(null);
-    try {
-      const result = await api('/reviews/' + review.id + '/decision', { method: 'POST', body: { expected_revision: review.revision, pelanggaran: choice === 'yes', rule_ids: choice === 'yes' ? rules : [], rationale, verification_notes: notes, evidence_basis: basis, reuse, valid_for_hours: Number(hours) } });
-      setFeedback(result); await reload(); setConflict(false); setChecked(false);
-    } catch (e) {
-      setError(e.status === 409 ? 'Konflik revision atau kebijakan. Draft tetap ada. Periksa detail terbaru sebelum mengirim manual kembali. ' + e.message : e.message);
-      setChecked(false); setConflict(true);
-      try { await reload(); } catch { setError('Respons keputusan belum diketahui dan detail gagal dimuat. Jangan kirim ulang; muat ulang review terlebih dahulu.'); }
-    } finally { setBusy(false); }
-  }
-  const allRules = taxonomy?.categories.flatMap(c => c.subcategories.map(r => ({ ...r, category: c.label }))) || [];
-  const external = basis !== 'text_only' || allRules.some(r => rules.includes(r.id) && r.evidence_requirement !== 'text') || review.classification?.prediction?.findings?.some(f => f.evidence_requirement !== 'text');
-  return <><div className="review-status"><Badge state={stateOf(review.classification)} /><span>Revision review: {review.revision}</span><button disabled={busy} onClick={() => reload().catch(e => setError(e.message))}>↻ Detail terbaru</button></div><Message>{attribution}</Message>{conflict && <Message kind="warning">Detail telah diperbarui atau respons sebelumnya belum pasti. Draft tidak ditimpa. Bandingkan audit, periksa kebijakan, lalu konfirmasi ulang jika masih perlu mengirim.</Message>}{feedback && <Message>Keputusan tersimpan. Knowledge: {feedback.knowledge_id}. Reuse efektif: <strong>{feedback.reuse}</strong>. {feedback.warnings?.join(' · ')}</Message>}
-    <div className="content-grid"><section className="panel"><h2>Konten & konteks</h2><blockquote className="source-content">{review.input?.content}</blockquote><h3>Konteks</h3><p className="prewrap">{review.input?.context || 'Tidak tersedia'}</p><p className="help mono">Context key: {review.input?.context_key || 'Tidak tersedia'}</p><h3>Analisis awal model — bukan keputusan manusia</h3><Findings value={review.classification?.prediction} /><details><summary>Hasil klasifikasi terkini</summary><Result value={review.classification} /></details></section>
-    <section className="panel"><h2>{review.status === 'completed' ? 'Koreksi keputusan' : 'Keputusan reviewer'}</h2><p className="muted">Pilihan tidak diisi otomatis dari prediksi model.</p><form onSubmit={decide}><fieldset disabled={busy}><legend>Apakah konten melanggar?</legend><div className="choices">{[['yes','Ya, melanggar'],['no','Tidak melanggar']].map(([value,label]) => <label key={value}><input type="radio" name="violation" required value={value} checked={choice === value} onChange={() => { setChoice(value); if (value === 'no') setRules([]); setChecked(false); }} />{label}</label>)}</div>
-      {choice === 'yes' && <><label htmlFor="rules">Kategori/subkategori (maksimal 8)</label><select id="rules" multiple size={7} value={rules} disabled={!taxonomy} onChange={e => { const next = [...e.target.selectedOptions].map(x => x.value); if (next.length <= 8) setRules(next); setChecked(false); }}>{allRules.map(r => <option value={r.id} key={r.id}>{r.category} / {r.label}</option>)}</select><p className="help">Gunakan Ctrl/⌘ untuk memilih beberapa rule. Taxonomy harus berhasil dimuat.</p></>}
-      <label htmlFor="rationale">Alasan keputusan</label><textarea id="rationale" rows={4} required minLength={5} maxLength={2000} value={rationale} onChange={e => { setRationale(e.target.value); setChecked(false); }} />
-      <label htmlFor="basis">Dasar bukti</label><select id="basis" value={basis} onChange={e => { setBasis(e.target.value); setChecked(false); }}><option value="external_evidence">Bukti eksternal / media / konteks</option><option value="text_only">Hanya teks — saya telah memastikan</option></select>
-      <label htmlFor="notes">Catatan verifikasi {external && <span className="required">*</span>}</label><textarea id="notes" rows={3} maxLength={3000} required={Boolean(external)} minLength={external ? 5 : undefined} value={notes} onChange={e => { setNotes(e.target.value); setChecked(false); }} />
-      <div className="field-pair"><div><label htmlFor="reuse">Izin reuse</label><select id="reuse" value={reuse} onChange={e => { setReuse(e.target.value); setChecked(false); }}><option value="none">None — tetap simpan knowledge</option><option value="exact">Exact — kasus identik</option><option value="similar">Similar — sesuai pemeriksaan service</option></select></div><div><label htmlFor="hours">Masa berlaku (jam)</label><input id="hours" type="number" min={1} max={2160} step={1} required value={hours} onChange={e => { setHours(e.target.value); setChecked(false); }} /></div></div><p className="help">Similar bukan jaminan bebas review. Bukti eksternal tidak dapat direuse melalui similarity; service dapat menurunkan izin efektif.</p>
-      <label className="confirm"><input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} />Saya telah memeriksa konten dan konteks yang relevan serta audit terbaru.</label><button className="primary" disabled={busy || limited || !checked || !taxonomy || !choice || (choice === 'yes' && !rules.length)}>{busy ? 'Menyimpan…' : review.status === 'completed' ? 'Simpan koreksi manusia' : 'Simpan keputusan manusia'}</button></fieldset></form></section></div>
-    <section className="panel compact"><h2>Audit service · urutan revision</h2>{review.events?.map(event => <article className="audit-row" key={event.revision}><strong>Revision {event.revision}</strong><span>{date(event.created)} · actor service: {event.actor}</span><p>{event.decision?.rationale}</p></article>)}{!review.events?.length && <p className="muted">Belum ada keputusan manusia.</p>}</section></>;
-}
-function Knowledge({ item, admin, api, refresh, setError }) {
-  const [busy,setBusy] = useState(false), [feedback,setFeedback] = useState('');
-  async function action(kind) {
-    let reason;
-    if (kind === 'revoke') { reason = window.prompt('Alasan pencabutan (5–1000 karakter):'); if (reason === null) return; if (reason.trim().length < 5 || reason.length > 1000) { setError('Alasan harus 5–1000 karakter.'); return; } if (!window.confirm('Cabut izin reuse knowledge ini untuk permintaan berikutnya? Hasil historis tidak diubah.')) return; }
-    setBusy(true); setError('');
-    try { const data = await api(`/knowledge/${item.id}/${kind}`, { method: 'POST', ...(reason !== undefined ? { body: { reason } } : {}) }); setFeedback(kind === 'reindex' ? data.indexed ? 'Index berhasil diperbarui.' : 'Index belum tersedia; keputusan manusia tetap tersimpan.' : 'Reuse knowledge dicabut.'); await refresh(); }
-    catch (e) { setError('Respons tindakan: ' + e.message + ' Muat ulang daftar sebelum mencoba lagi.'); try { await refresh(); } catch {} }
-    finally { setBusy(false); }
-  }
-  return <article className="knowledge"><div className="row"><span className="badge neutral">{knowledgeState(item)}</span><span className="muted">Reuse: {item.reuse} · berakhir {date(item.expires)}</span></div><h3>{item.input?.content}</h3><p>{item.result?.explanation || item.rationale}</p><details><summary>Provenance, konteks & keputusan</summary><p className="prewrap">{item.input?.context}</p><dl className="meta"><dt>Case / revision</dt><dd>{item.case_id} / {item.revision}</dd><dt>Actor service</dt><dd>{item.actor}</dd><dt>Versi kebijakan</dt><dd>{item.version}</dd><dt>Context key</dt><dd>{item.input?.context_key || '—'}</dd><dt>ID knowledge</dt><dd>{item.id}</dd></dl><Findings value={item.result} /></details>{item.index_error && <Message kind="warning">Indexing: {item.index_error}. Ini bukan kegagalan keputusan manusia.</Message>}<Message>{feedback}</Message>{admin && <div className="actions"><button disabled={busy} onClick={() => action('reindex')}>Reindex</button><button className="danger" disabled={busy || item.state === 'revoked'} onClick={() => action('revoke')}>Cabut reuse</button></div>}</article>;
-}
-function Users({ rows, user, api, refresh, setError }) {
-  const [busy,setBusy] = useState(false), [email,setEmail] = useState(''), [name,setName] = useState(''), [password,setPassword] = useState(''), [role,setRole] = useState('operator');
-  async function update(row, changes) { setBusy(true); try { await api('/users/' + row.id, { method: 'POST', body: { role: row.role, active: Boolean(row.active), ...changes } }); await refresh(); } catch (e) { setError(e.message); } finally { setBusy(false); } }
-  return <div className="content-grid"><section className="panel"><h2>Pengguna organisasi</h2>{rows.map(row => <div className="user-row" key={row.id}><strong>{row.name}</strong><small>{row.email}</small><div className="actions"><select aria-label={'Role '+row.email} disabled={busy || row.id === user.id} value={row.role} onChange={e => update(row,{role:e.target.value})}>{['operator','reviewer','admin'].map(role => <option key={role}>{role}</option>)}</select><button disabled={busy || row.id === user.id} onClick={() => update(row,{active:!row.active})}>{row.active ? 'Nonaktifkan' : 'Aktifkan'}</button></div><code>{row.id}</code></div>)}</section><section className="panel"><h2>Tambah pengguna</h2><form onSubmit={async e => { e.preventDefault(); setBusy(true); try { await api('/users',{method:'POST',body:{email,name,password,role}});setEmail('');setName('');setPassword('');await refresh(); } catch(e) {setError(e.message);}finally{setBusy(false);} }}><label htmlFor="new-name">Nama</label><input id="new-name" required maxLength={150} value={name} onChange={e=>setName(e.target.value)}/><label htmlFor="new-email">Email</label><input id="new-email" type="email" required value={email} onChange={e=>setEmail(e.target.value)}/><label htmlFor="new-password">Kata sandi awal (minimal 12 karakter)</label><input id="new-password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)}/><label htmlFor="new-role">Role</label><select id="new-role" value={role} onChange={e=>setRole(e.target.value)}>{['operator','reviewer','admin'].map(role=><option key={role}>{role}</option>)}</select><button className="primary" disabled={busy}>Buat pengguna</button><p className="help">Tenant mengikuti admin. Key reviewer per manusia diprovision terpisah pada service; ID pengguna dipakai pada pemetaan server.</p></form></section></div>;
+  const locked = Boolean(attempt);
+  const navItem = (id, label, icon) => <SideNavItem key={id} label={label} icon={icon} isSelected={page === id || (id === 'reviews' && page === 'workspace')} isDisabled={busy} onClick={() => navigate(id)} />;
+
+  const sideNav = <SideNav aria-label="Navigasi utama"
+    header={<SideNavHeading heading="Abuse Reporter" subheading="Content intelligence" icon={<span className="brand-mark">AR</span>} />}
+    footer={<HStack gap={2} vAlign="center" padding={2}>
+      <Avatar name={user.name} size="sm" tooltip={false} />
+      <StackItem size="fill"><VStack gap={0}>
+        <Text weight="medium" maxLines={1}>{user.name}</Text>
+        <Text type="supporting" maxLines={1}>{user.role} · {user.tenant}</Text>
+      </VStack></StackItem>
+      <IconButton label="Keluar" icon={<Icon icon={LogOut} />} variant="ghost" size="sm" isDisabled={busy} onClick={signOut} />
+    </HStack>}>
+    <SideNavSection title="Workspace">
+      {navItem('new', 'Klasifikasi baru', ScanSearch)}
+      {navItem('history', 'Submission saya', HistoryIcon)}
+      {navItem('taxonomy', 'Taxonomy kebijakan', BookMarked)}
+    </SideNavSection>
+    {canReview && <SideNavSection title="Review">
+      {navItem('reviews', 'Antrean review', Inbox)}
+      {navItem('knowledge', 'Knowledge', Brain)}
+    </SideNavSection>}
+    {isAdmin && <SideNavSection title="Administrasi">
+      {navItem('users', 'Pengguna & peran', UsersIcon)}
+    </SideNavSection>}
+  </SideNav>;
+
+  return <AppShell sideNav={sideNav} contentPadding={0} variant="elevated">
+    <Layout contentWidth={1240} height="auto">
+      <LayoutContent><VStack gap={6}>
+        <HStack gap={3} vAlign="center" wrap="wrap" justify="between">
+          <Breadcrumbs variant="supporting" label="Lokasi halaman">
+            <BreadcrumbItem>Workspace</BreadcrumbItem>
+            <BreadcrumbItem isCurrent>{page === 'new' ? 'Category suggestion' : heading[1]}</BreadcrumbItem>
+          </Breadcrumbs>
+          <Badge variant="neutral" label="𝕏 Policy mapping" />
+        </HStack>
+        <PageHeader eyebrow={heading[0]} title={heading[1]} description={heading[2]} />
+        <Notice kind="error">{error}</Notice>
+        <Notice kind="info">{notice}</Notice>
+        {remaining > 0 && <Notice kind="warning">Batas permintaan tercapai. Coba lagi dalam {remaining} detik.</Notice>}
+
+        {page === 'new' && <>
+          <Grid columns={{ minWidth: 440 }} gap={5} align="start">
+            <Panel title="Konten yang ingin diperiksa" actions={<Badge variant="neutral" label="𝕏" />}>
+              <form onSubmit={submit}>
+                <VStack gap={5}>
+                  <TextArea label="Teks konten" isRequired rows={7} maxLength={8000} htmlMaxLength={8000} value={form.content} isDisabled={busy || locked}
+                    placeholder="Tempel teks postingan atau balasan yang ingin ditinjau…" onChange={value => setForm({ ...form, content: value })} />
+                  <TextArea label="Konteks tambahan" isOptional rows={3} maxLength={3000} htmlMaxLength={3000} value={form.context} isDisabled={busy || locked}
+                    placeholder="Siapa yang menjadi sasaran? Apa konteks percakapannya?" onChange={value => setForm({ ...form, context: value })} />
+                  <Collapsible defaultIsOpen={false} chevronPosition="start" trigger={<Text weight="medium">Referensi & identitas konteks</Text>}>
+                    <VStack gap={4} paddingBlockStart={3}>
+                      <TextInput label="Context key" isOptional maxLength={200} value={form.context_key} isDisabled={busy || locked} placeholder="post-123:target-456:evidence-v1"
+                        description="Identitas konteks yang stabil, misalnya post, sasaran, dan versi bukti. Jangan gunakan satu nilai untuk semua kasus."
+                        onChange={value => setForm({ ...form, context_key: value.slice(0, 200) })} />
+                      <TextInput label="Referensi eksternal" isOptional value={form.external_reference_id || ''} isDisabled={busy || locked}
+                        onChange={value => setForm({ ...form, external_reference_id: value.slice(0, 200) })} />
+                    </VStack>
+                  </Collapsible>
+                  <Divider />
+                  <HStack gap={3} vAlign="center" wrap="wrap" justify="between">
+                    <Text type="supporting">Teks saja · tidak membuka tautan/media</Text>
+                    <Button type="submit" variant="primary" icon={<Icon icon={Send} />} isLoading={busy} label={attempt && !result ? 'Retry payload yang sama' : 'Analisis konten'}
+                      isDisabled={busy || remaining > 0 || Boolean(result) || !form.content.trim()} />
+                  </HStack>
+                  {attempt && <VStack gap={2} hAlign="start">
+                    <Text type="supporting">Request <Mono>{attempt.key.slice(0, 8)}</Mono> · tersimpan server-side</Text>
+                    <Button variant="secondary" size="sm" isDisabled={busy} onClick={startNew} label={'Mulai submission baru' + (result?.status === 'failed' ? ' dengan key baru' : '')} />
+                  </VStack>}
+                </VStack>
+              </form>
+            </Panel>
+            <Panel title="Hasil analisis">
+              {busy && !result
+                ? <VStack gap={3} hAlign="center" paddingBlock={8}>
+                    <Spinner size="xl" label="Membaca konten dan konteks…" />
+                    <Text type="supporting" justify="center">Analisis bisa memerlukan beberapa menit. Referensi submission tetap tersimpan jika koneksi terputus.</Text>
+                  </VStack>
+                : <Result value={result} openReview={canReview ? openReview : null} />}
+            </Panel>
+          </Grid>
+          {previewInput && <Panel title="Konten submission">
+            <Text as="p" className="prewrap">{previewInput.content}</Text>
+            {previewInput.context && <Text as="p" color="secondary" className="prewrap">{previewInput.context}</Text>}
+          </Panel>}
+          <Panel title="Kategori dimuat dari taxonomy service." description="Snapshot kebijakan, bukan replika lengkap menu Report X atau keputusan resmi platform.">
+            {taxonomy
+              ? <HStack gap={2} wrap="wrap">{taxonomy.categories.map(c => <Badge key={c.id} variant="neutral" label={c.label} />)}</HStack>
+              : <HStack><Button variant="secondary" size="sm" label="Muat ulang taxonomy" onClick={reloadTaxonomy} /></HStack>}
+          </Panel>
+          <AlertDialog isOpen={confirmNew} onOpenChange={setConfirmNew} title="Mulai submission baru?"
+            description="Submission sebelumnya belum final. Referensinya tetap ada di Submission saya."
+            actionLabel="Mulai submission baru" cancelLabel="Batal" actionVariant="primary"
+            onAction={() => { setConfirmNew(false); fresh(); }} />
+        </>}
+
+        {page === 'taxonomy' && <Taxonomy taxonomy={taxonomy} reload={reloadTaxonomy} />}
+        {page === 'history' && <>
+          <ApiHistory api={api} />
+          <History rows={rows} total={total} reload={() => loadList()} onOpen={viewSubmission} />
+        </>}
+        {page === 'reviews' && <ReviewQueue rows={rows} total={total} offset={offset} setOffset={setOffset} queue={queue} setQueue={setQueue} reload={() => loadList()} onOpen={openReview} />}
+        {page === 'workspace' && review && <ReviewWorkspace key={review.id} review={review} taxonomy={taxonomy} api={api} setReview={setReview} setError={setError} attribution={attribution} limited={remaining > 0} />}
+        {page === 'knowledge' && <KnowledgeList rows={rows} total={total} offset={offset} setOffset={setOffset} reload={() => loadList()} admin={isAdmin} api={api} setError={setError} />}
+        {page === 'users' && <Users rows={rows} user={user} api={api} refresh={() => loadList()} setError={setError} />}
+
+        <Divider />
+        <HStack gap={3} wrap="wrap" justify="between">
+          <Text type="supporting"><Text weight="semibold" color="accent">Abuse Reporter</Text> · Human-centered content review</Text>
+          <Text type="supporting">{taxonomy?.version || 'Taxonomy belum terhubung'} · Waktu lokal browser</Text>
+        </HStack>
+      </VStack></LayoutContent>
+    </Layout>
+  </AppShell>;
 }
