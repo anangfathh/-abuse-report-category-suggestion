@@ -44,4 +44,10 @@ with psycopg.connect(dsn) as conn:
         copy_tables(cur,os.environ['APP_SQLITE_PATH'],app_schema,app_tables)
         copy_tables(cur,os.environ['REVIEW_SQLITE_PATH'],review_schema,review_tables)
         cur.execute('SELECT setval(%s::regclass, COALESCE((SELECT max(id) FROM '+app_schema+'.audit), 1), EXISTS(SELECT 1 FROM '+app_schema+'.audit))',(app_schema+'.audit_id_seq',))
+        role=os.getenv('MIGRATION_APP_ROLE')
+        if role:
+            if not re.fullmatch(r'[a-z_][a-z0-9_]{0,62}',role): raise ValueError('Invalid app role')
+            cur.execute(sql.SQL('GRANT USAGE, CREATE ON SCHEMA {} TO {}').format(sql.Identifier(app_schema),sql.Identifier(role)))
+            cur.execute(sql.SQL('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {} TO {}').format(sql.Identifier(app_schema),sql.Identifier(role)))
+            cur.execute(sql.SQL('GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA {} TO {}').format(sql.Identifier(app_schema),sql.Identifier(role)))
 print('Migration committed; source databases preserved')
