@@ -27,10 +27,10 @@ import { Text } from '@astryxdesign/core/Text';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { VStack } from '@astryxdesign/core/VStack';
-import { Hourglass, LogIn, RefreshCw } from 'lucide-react';
+import { Braces, Hourglass, LogIn, RefreshCw } from 'lucide-react';
 import { stateOf, policyLink, knowledgeState, filterTaxonomy } from '../lib/domain.mjs';
 import { Spinner } from '@astryxdesign/core/Spinner';
-import { Empty, Findings, ListHead, Mono, Notice, PAGE_SIZE, Panel, PaginationBar, ReloadButton, Result, StateBadge, date } from './ui.jsx';
+import { DisclosureCard, Empty, Findings, JsonBlock, JsonDisclosure, ListHead, Mono, Notice, PAGE_SIZE, Panel, PaginationBar, ReloadButton, Result, StateBadge, ThemeToggle, date } from './ui.jsx';
 
 const knowledgeVariants = { active: 'success', revoked: 'error', expired: 'warning' };
 const REVIEW_TABS = [['pending', 'Pending'], ['completed', 'Selesai']];
@@ -47,7 +47,7 @@ export function Login({ onLogin }) {
   }
   return <div className="login-page">
     <div className="login-intro">
-      <HStack gap={2} vAlign="center"><span className="brand-mark">AR</span><Heading level={2}>Abuse Reporter</Heading></HStack>
+      <HStack gap={3} vAlign="center" justify="between"><HStack gap={2} vAlign="center"><span className="brand-mark">AR</span><Heading level={2}>Abuse Reporter</Heading></HStack><ThemeToggle /></HStack>
       <VStack gap={3} className="login-intro-copy">
         <Text type="label" color="accent">HUMAN-CENTERED CONTENT REVIEW</Text>
         <Heading level={1} type="display-2">Teknologi membaca. Manusia memahami.</Heading>
@@ -95,27 +95,21 @@ export function Taxonomy({ taxonomy, reload }) {
       <VStack gap={3}>
         {filtered.map(category => {
           const source = policyLink(category.source_url);
-          return <Card key={category.id + (searching ? ':search' : '')} padding={0}>
-            <Collapsible defaultIsOpen={searching} trigger={<VStack gap={0.5}>
-              <Text weight="semibold">{category.label}</Text>
-              <Text type="supporting">{category.id} · {category.subcategories.length} subkategori</Text>
-            </VStack>}>
-              <VStack gap={4} padding={4} paddingBlockStart={0}>
-                {category.policy_title && <Text type="supporting">{category.policy_title}{category.source_updated ? ` · diperbarui ${category.source_updated}` : ''}</Text>}
-                {category.exceptions && <Text as="p"><Text weight="semibold">Konteks & pengecualian:</Text> {category.exceptions}</Text>}
-                {source && <HStack><Link href={source} isExternalLink>Baca sumber kebijakan</Link></HStack>}
-                <Grid columns={{ minWidth: 260 }} gap={3}>
-                  {category.subcategories.map(rule => <Card key={rule.id} variant="muted" padding={4}>
-                    <VStack gap={2}>
-                      <Heading level={4}>{rule.label}</Heading>
-                      <Text as="p" color="secondary">{rule.detail}</Text>
-                      <Text type="supporting"><Mono>{rule.id}</Mono> · Bukti: {rule.evidence_requirement || '—'}</Text>
-                    </VStack>
-                  </Card>)}
-                </Grid>
-              </VStack>
-            </Collapsible>
-          </Card>;
+          return <DisclosureCard key={category.id + (searching ? ':search' : '')} defaultIsOpen={searching}
+            title={category.label} meta={`${category.id} · ${category.subcategories.length} subkategori`}>
+            {category.policy_title && <Text type="supporting">{category.policy_title}{category.source_updated ? ` · diperbarui ${category.source_updated}` : ''}</Text>}
+            {category.exceptions && <Text as="p"><Text weight="semibold">Konteks & pengecualian:</Text> {category.exceptions}</Text>}
+            {source && <HStack><Link href={source} isExternalLink>Baca sumber kebijakan</Link></HStack>}
+            <Grid columns={{ minWidth: 260 }} gap={3}>
+              {category.subcategories.map(rule => <Card key={rule.id} variant="muted" padding={4}>
+                <VStack gap={2}>
+                  <Heading level={4}>{rule.label}</Heading>
+                  <Text as="p" color="secondary">{rule.detail}</Text>
+                  <Text type="supporting"><Mono>{rule.id}</Mono> · Bukti: {rule.evidence_requirement || '—'}</Text>
+                </VStack>
+              </Card>)}
+            </Grid>
+          </DisclosureCard>;
         })}
       </VStack>
       {!filtered.length && <Empty title="Tidak ada kategori yang cocok dengan pencarian." />}
@@ -124,18 +118,50 @@ export function Taxonomy({ taxonomy, reload }) {
 }
 
 /* ───────────────────────────── Daftar ───────────────────────────── */
-export function History({ rows, total, reload, onOpen }) {
+export function History({ rows, total, reload, onOpen, api }) {
+  const [jsonRow, setJsonRow] = useState(null);
   const columns = [
     { key: 'ref', header: 'Referensi aplikasi', renderCell: r => <Mono>{r.service_id?.slice(0, 12) || r.id.slice(0, 12)}</Mono> },
     { key: 'status', header: 'Status terakhir / cache', renderCell: r => <Badge variant="neutral" label={String(r.status)} /> },
     { key: 'created', header: 'Dikirim', renderCell: r => new Date(r.created).toLocaleString('id-ID') },
-    { key: 'action', header: '', renderCell: r => <Button label="Periksa status terbaru" size="sm" variant="secondary" onClick={() => onOpen(r)} /> },
+    { key: 'action', header: '', renderCell: r => <HStack gap={2} justify="end">
+      <Button label="Lihat JSON" size="sm" variant="ghost" icon={<Icon icon={Braces} />} onClick={() => setJsonRow(r)} />
+      <Button label="Periksa status terbaru" size="sm" variant="secondary" onClick={() => onOpen(r)} />
+    </HStack> },
   ];
   return <Panel>
     <ListHead title="Submission akun ini" total={total} reload={reload} />
     {rows.length ? <Table data={rows} columns={columns} idKey="id" hasHover /> : <Empty title="Belum ada submission dari akun ini." />}
     <Text type="supporting" color="secondary">Maksimal 100 referensi terbaru. Hasil final selalu dimuat ulang dari service saat dibuka.</Text>
+    {jsonRow && <SubmissionJsonDialog row={jsonRow} api={api} onClose={() => setJsonRow(null)} />}
   </Panel>;
+}
+
+/** Memuat payload submission + hasil klasifikasi terbarunya dari service, lalu menampilkannya sebagai JSON. */
+function SubmissionJsonDialog({ row, api, onClose }) {
+  const [data, setData] = useState(null), [error, setError] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const saved = await api('/submissions/' + row.id);
+        const classification = saved.service_id ? await api('/classifications/' + saved.service_id) : null;
+        if (!cancelled) setData({ submission: saved, classification });
+      } catch (e) { if (!cancelled) setError(e.message); }
+    })();
+    return () => { cancelled = true; };
+  }, [row.id]);
+  return <Dialog isOpen onOpenChange={open => { if (!open) onClose(); }} width={720} purpose="info">
+    <Layout height="auto" padding={4} defaultHasDividers
+      header={<DialogHeader title="JSON klasifikasi" subtitle={<Mono>{row.service_id || row.id}</Mono>} onOpenChange={open => { if (!open) onClose(); }} hasDivider={false} />}
+      content={<LayoutContent><VStack gap={3}>
+        <Notice kind="error">{error}</Notice>
+        {!data && !error && <HStack gap={2} vAlign="center"><Spinner size="sm" /><Text type="supporting">Memuat JSON dari service…</Text></HStack>}
+        {data && !data.classification && <Notice kind="warning">Respons awal belum diketahui, jadi hasil klasifikasi belum ada. Hanya payload submission yang ditampilkan.</Notice>}
+        {data && <JsonBlock value={data} title="submission-classification.json" maxHeight={460} />}
+      </VStack></LayoutContent>}
+      footer={<LayoutFooter><HStack hAlign="end"><Button label="Tutup" variant="secondary" onClick={onClose} /></HStack></LayoutFooter>} />
+  </Dialog>;
 }
 
 /** Riwayat klasifikasi untuk API key integrasi organisasi (key tetap di server). */
@@ -153,19 +179,14 @@ export function ApiHistory({ api }) {
     {loading && <HStack gap={2} vAlign="center"><Spinner size="sm" /><Text type="supporting">Memuat riwayat…</Text></HStack>}
     {!loading && !error && !items.length && <Empty title="Belum ada klasifikasi yang tercatat untuk API key ini." />}
     <VStack gap={3}>
-      {items.map(item => <Card key={item.id} padding={0}>
-        <Collapsible trigger={<VStack gap={0.5}>
-          <Text weight="semibold" maxLines={2} wordBreak="break-word">{item.input?.content?.slice(0, 120) || 'Klasifikasi'}</Text>
-          <Text type="supporting">{new Date(item.created_at).toLocaleString('id-ID')} · {item.result?.status || '—'} · <Mono>{item.id.slice(0, 8)}</Mono></Text>
-        </VStack>} defaultIsOpen={false}>
-          <VStack gap={4} padding={4} paddingBlockStart={0}>
-            <Text as="p" className="prewrap">{item.input?.content}</Text>
-            {item.input?.context && <Text as="p" color="secondary" className="prewrap">Konteks: {item.input.context}</Text>}
-            <Findings value={item.result} />
-            <Text type="supporting">Request API: <Mono>{item.id}</Mono></Text>
-          </VStack>
-        </Collapsible>
-      </Card>)}
+      {items.map(item => <DisclosureCard key={item.id} title={item.input?.content?.slice(0, 120) || 'Klasifikasi'}
+        meta={<>{new Date(item.created_at).toLocaleString('id-ID')} · {item.result?.status || '—'} · <Mono>{item.id.slice(0, 8)}</Mono></>}>
+        <Text as="p" className="prewrap">{item.input?.content}</Text>
+        {item.input?.context && <Text as="p" color="secondary" className="prewrap">Konteks: {item.input.context}</Text>}
+        <Findings value={item.result} />
+        <Text type="supporting">Request API: <Mono>{item.id}</Mono></Text>
+        <JsonDisclosure value={item} label="Lihat JSON hasil klasifikasi" title="history-item.json" />
+      </DisclosureCard>)}
     </VStack>
     <PaginationBar offset={offset} total={total} setOffset={setOffset} />
     <Text type="supporting" color="secondary">Riwayat mulai tercatat sejak fitur ini diaktifkan. Permintaan dari aplikasi juga dapat muncul di sini.</Text>

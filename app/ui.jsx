@@ -4,6 +4,8 @@ import { Banner } from '@astryxdesign/core/Banner';
 import { Blockquote } from '@astryxdesign/core/Blockquote';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
+import { CodeBlock } from '@astryxdesign/core/CodeBlock';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { HStack } from '@astryxdesign/core/HStack';
@@ -11,10 +13,12 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Link } from '@astryxdesign/core/Link';
 import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
 import { Pagination } from '@astryxdesign/core/Pagination';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { StackItem } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { VStack } from '@astryxdesign/core/VStack';
-import { RefreshCw, ScanSearch } from 'lucide-react';
+import { Braces, Monitor, Moon, RefreshCw, ScanSearch, Sun } from 'lucide-react';
+import { useThemeMode } from './providers.jsx';
 import { stateOf, policyLink } from '../lib/domain.mjs';
 
 export const PAGE_SIZE = 25;
@@ -33,6 +37,16 @@ export function Notice({ children, kind = 'info', title, ...rest }) {
 export function StateBadge({ state }) { return <Badge variant={stateVariants[state] || 'neutral'} label={stateNames[state] || state} />; }
 
 export function Mono({ children }) { return <span className="mono">{children}</span>; }
+
+/** Pemilih mode tampilan: terang / sistem / gelap. */
+export function ThemeToggle() {
+  const { mode, setMode } = useThemeMode();
+  return <SegmentedControl label="Mode tampilan" size="sm" value={mode} onChange={setMode}>
+    <SegmentedControlItem value="light" label="Terang" isLabelHidden icon={<Icon icon={Sun} />} />
+    <SegmentedControlItem value="system" label="Ikuti sistem" isLabelHidden icon={<Icon icon={Monitor} />} />
+    <SegmentedControlItem value="dark" label="Gelap" isLabelHidden icon={<Icon icon={Moon} />} />
+  </SegmentedControl>;
+}
 
 export function PageHeader({ eyebrow, title, description }) {
   return <VStack gap={1}>
@@ -83,6 +97,29 @@ export function Empty({ title, description, isCompact = true, icon, actions }) {
   return <EmptyState isCompact={isCompact} title={title} description={description} icon={icon} actions={actions} />;
 }
 
+/** Kartu yang bisa dibuka-tutup; trigger dan isi diberi padding yang konsisten. */
+export function DisclosureCard({ title, meta, defaultIsOpen = false, children }) {
+  return <Card padding={0}>
+    <Collapsible defaultIsOpen={defaultIsOpen} trigger={<VStack gap={0.5} paddingInlineStart={4} paddingBlock={3}>
+      <Text weight="semibold" maxLines={2} wordBreak="break-word">{title}</Text>
+      {meta && <Text type="supporting">{meta}</Text>}
+    </VStack>}>
+      <VStack gap={4} padding={4} paddingBlockStart={1}>{children}</VStack>
+    </Collapsible>
+  </Card>;
+}
+
+/** JSON mentah (read-only, bisa disalin) untuk keperluan audit/debug. */
+export function JsonBlock({ value, title = 'JSON', maxHeight = 420 }) {
+  return <CodeBlock code={JSON.stringify(value, null, 2)} language="json" title={title} hasLanguageLabel={false} width="100%" maxHeight={maxHeight} isWrapped />;
+}
+
+export function JsonDisclosure({ value, label = 'Lihat JSON', title }) {
+  return <Collapsible defaultIsOpen={false} chevronPosition="start" trigger={<HStack gap={2} vAlign="center"><Icon icon={Braces} size="sm" /><Text weight="medium">{label}</Text></HStack>}>
+    <VStack paddingBlockStart={3}><JsonBlock value={value} title={title} /></VStack>
+  </Collapsible>;
+}
+
 export function Findings({ value }) {
   if (!value) return null;
   return <VStack gap={4}>
@@ -130,5 +167,6 @@ export function Result({ value, openReview }) {
       <MetadataListItem label="Kebijakan">{value.result?.taxonomy_version || value.prediction?.taxonomy_version || '—'}</MetadataListItem>
       {value.external_reference_id && <MetadataListItem label="Referensi">{value.external_reference_id}</MetadataListItem>}
     </MetadataList>
+    <JsonDisclosure value={value} label="Lihat JSON hasil klasifikasi" title="classification.json" />
   </VStack>;
 }

@@ -21,7 +21,7 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { VStack } from '@astryxdesign/core/VStack';
 import { BookMarked, Brain, History as HistoryIcon, Inbox, LogOut, ScanSearch, Send, Users as UsersIcon } from 'lucide-react';
-import { Mono, Notice, PageHeader, Panel, Result } from './ui.jsx';
+import { Mono, Notice, PageHeader, Panel, Result, ThemeToggle } from './ui.jsx';
 import { ApiHistory, History, KnowledgeList, Login, ReviewQueue, ReviewWorkspace, Taxonomy, Users } from './views.jsx';
 
 const blank = { platform: 'x', content: '', context: '', context_key: '', external_reference_id: '' };
@@ -170,7 +170,7 @@ export default function App() {
             <BreadcrumbItem>Workspace</BreadcrumbItem>
             <BreadcrumbItem isCurrent>{page === 'new' ? 'Category suggestion' : heading[1]}</BreadcrumbItem>
           </Breadcrumbs>
-          <Badge variant="neutral" label="𝕏 Policy mapping" />
+          <HStack gap={3} vAlign="center"><Badge variant="neutral" label="𝕏 Policy mapping" /><ThemeToggle /></HStack>
         </HStack>
         <PageHeader eyebrow={heading[0]} title={heading[1]} description={heading[2]} />
         <Notice kind="error">{error}</Notice>
@@ -235,7 +235,7 @@ export default function App() {
         {page === 'taxonomy' && <Taxonomy taxonomy={taxonomy} reload={reloadTaxonomy} />}
         {page === 'history' && <>
           <ApiHistory api={api} />
-          <History rows={rows} total={total} reload={() => loadList()} onOpen={viewSubmission} />
+          <History rows={rows} total={total} reload={() => loadList()} onOpen={viewSubmission} api={api} />
         </>}
         {page === 'reviews' && <ReviewQueue rows={rows} total={total} offset={offset} setOffset={setOffset} queue={queue} setQueue={setQueue} reload={() => loadList()} onOpen={openReview} />}
         {page === 'workspace' && review && <ReviewWorkspace key={review.id} review={review} taxonomy={taxonomy} api={api} setReview={setReview} setError={setError} attribution={attribution} limited={remaining > 0} />}

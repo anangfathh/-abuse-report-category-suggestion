@@ -8,7 +8,7 @@ Deployment Docker: **https://abuse-reporter.qudo.id**. Detail routing/TLS/operas
 
 ## Antarmuka (Astryx)
 
-UI memakai [Astryx](https://astryx.atmeta.com) (`@astryxdesign/core` + `@astryxdesign/theme-neutral`, React 19): `AppShell`/`SideNav` untuk kerangka, `Table`, `Selector`/`MultiSelector`, `TextArea`, `Dialog`/`AlertDialog`, `Banner`, `Badge`, `Pagination`, dan seterusnya; mode terang/gelap mengikuti sistem. Font Figtree dimuat lokal lewat `@fontsource-variable/figtree` karena CSP hanya mengizinkan `font-src 'self'`. Presentasi ada di `app/ui.jsx` dan `app/views.jsx`; logika/polling tetap di `app/page.jsx`. Cek API komponen dengan `npx astryx component <Nama>`.
+UI memakai [Astryx](https://astryx.atmeta.com) (`@astryxdesign/core` + `@astryxdesign/theme-neutral`, React 19): `AppShell`/`SideNav` untuk kerangka, `Table`, `Selector`/`MultiSelector`, `TextArea`, `Dialog`/`AlertDialog`, `Banner`, `Badge`, `Pagination`, dan seterusnya; mode tampilan bisa dipilih pengguna (terang / ikuti sistem / gelap) lewat tombol di pojok kanan atas; pilihan disimpan di cookie `theme` (bukan localStorage) agar server merender mode yang benar sejak awal. Font Figtree dimuat lokal lewat `@fontsource-variable/figtree` karena CSP hanya mengizinkan `font-src 'self'`. Presentasi ada di `app/ui.jsx` dan `app/views.jsx`; logika/polling tetap di `app/page.jsx`. Cek API komponen dengan `npx astryx component <Nama>`.
 
 ## Fitur
 
