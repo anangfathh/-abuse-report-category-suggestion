@@ -18,7 +18,7 @@ Deployment Docker: **https://abuse-reporter.qudo.id**. Detail routing/TLS/operas
 
 ## Menjalankan
 
-Node **24+**, npm. Tidak membutuhkan database/service berbayar tambahan. Next.js/React/Zod maintained; SQLite bawaan Node hanya menyimpan user/session, audit aplikasi dan ledger submission. Tidak mengakses SQLite/PVC service moderation.
+Node **24+**, npm. Tidak membutuhkan database/service berbayar tambahan. Next.js/React/Zod maintained; PostgreSQL menyimpan user/session, audit aplikasi dan ledger submission dalam skema `abuse_reporter` yang terisolasi.
 
 ```sh
 npm ci
@@ -32,7 +32,7 @@ Buka `http://localhost:3040` (atau ganti APP_ORIGIN dan alamat browser agar pers
 ```dotenv
 APP_ORIGIN=http://localhost:3040
 COOKIE_SECURE=false
-APP_DATABASE_PATH=data/app.sqlite3
+APP_DATABASE_URL=postgresql://app_user:replace-me@localhost:5432/app_database
 MODERATION_TENANTS_JSON={"team-a":{"baseUrl":"http://127.0.0.1:8030","clientKey":"<client-key-server-side>","reviewerKey":"<shared-reviewer-key-server-side>","reviewerKeys":{}}}
 ```
 
@@ -73,7 +73,7 @@ docker run --rm -p 127.0.0.1:3040:3040 --env-file .env.local \
   -v tilik-data:/app/data tilik:local
 ```
 
-Provision admin sebelum membuka aplikasi menggunakan CLI di container dengan volume yang sama. Jalankan satu instance aplikasi pada pilot SQLite; bukan jaminan deployment horizontal. Runtime/test tidak mengubah deployment service moderation atau NarasiAhli.
+Provision admin sebelum membuka aplikasi menggunakan CLI di container dengan volume yang sama. Jalankan satu instance aplikasi dengan PostgreSQL; bukan jaminan deployment horizontal. Runtime/test tidak mengubah deployment service moderation atau NarasiAhli.
 
 ## Route BFF
 
@@ -106,7 +106,7 @@ Mutations selain login wajib `X-CSRF-Token` dari `/api/me` dan Origin cocok APP_
 
 ## Retensi, backup, audit
 
-DB `data/app.sqlite3` menyimpan password hash, session, metadata audit (actor/tenant/action/object/status/waktu) dan **payload submission** untuk recovery. Tidak menyimpan prediction sebagai knowledge. Folder data dibuat mode 0700. Lindungi volume dan backup karena payload dapat sensitif.
+Skema PostgreSQL `abuse_reporter` menyimpan password hash, session, metadata audit (actor/tenant/action/object/status/waktu) dan **payload submission** untuk recovery. Tidak menyimpan prediction sebagai knowledge. Lindungi database dan backup karena payload dapat sensitif.
 
 Retensi pilot: data submission/audit bertahan sampai operator menghapusnya; **belum ada auto-purge**. Tentukan kebijakan retensi organisasi sebelum produksi, dan hapus ledger kedaluwarsa lewat maintenance aplikasi (tidak menghapus data service). Session expired dibersihkan ketika login berhasil. Backup SQLite menggunakan `.backup`/SQLite backup API atau snapshot volume dengan prosedur konsisten; jangan hanya menyalin file DB saat WAL aktif. Restore backup ke aplikasi yang dihentikan, lalu verifikasi permission. Jangan commit DB/backup.
 
@@ -133,3 +133,7 @@ Live contract read-only diperiksa terpisah, tanpa menyalin credential/konten. Ha
 Production uses NarasiAhli `/api/v1/external/moderation-review` for classification and human-review workflow. `MODERATION_TENANTS_JSON` configures the service base URL and server-only API Integration key. The key needs `moderation:read`, `moderation:classify`, and `moderation:review`; use the same integration key for client and reviewer access to the same case scope. Application login and reviewer roles remain enforced separately. The API key must never be exposed to the browser or committed.
 
 For Docker deployments, set `NARASIAHLI_IP` in the Compose environment to the private IP serving HTTPS for `narasiahli.qudo.id`. Compose adds a host mapping for this domain, so the application can reach the existing ingress even when the server DNS resolver is unavailable.
+
+## PostgreSQL migration
+
+Aplikasi membutuhkan `APP_DATABASE_URL` dan skema `abuse_reporter` yang telah dibuat dengan izin untuk akun aplikasi. Skrip `scripts/migrate_sqlite_to_postgres.py` menyalin snapshot SQLite ke skema baru tanpa mengubah skema PostgreSQL yang sudah ada; jalankan hanya saat penulis dihentikan, dan verifikasi serta simpan backup sebelum peralihan.

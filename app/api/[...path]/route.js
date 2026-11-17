@@ -36,20 +36,20 @@ async function handle(req, context) {
       originCheck(req);
       const body = z.object({ email: z.email().max(254), password: z.string().min(1).max(128) }).strict().parse(await bodyOf(req));
       const email = body.email.toLowerCase(), identity = digest(email), now = Date.now();
-      const limiter = db().prepare('SELECT * FROM login_limits WHERE identity=?').get(identity);
+      const limiter = await db().prepare('SELECT * FROM login_limits WHERE identity=?').get(identity);
       if (limiter && limiter.expires > now && limiter.count >= 8) return json({ error: 'Terlalu banyak percobaan login.' }, 429, { 'Retry-After': String(Math.ceil((limiter.expires - now) / 1000)) });
-      db().prepare('INSERT INTO login_limits VALUES(?,1,?) ON CONFLICT(identity) DO UPDATE SET count=CASE WHEN expires>? THEN count+1 ELSE 1 END,expires=CASE WHEN expires>? THEN expires ELSE excluded.expires END').run(identity, now + 15 * 60000, now, now);
-      const account = db().prepare('SELECT * FROM users WHERE email=?').get(email);
+      await db().prepare('INSERT INTO login_limits VALUES(?,1,?) ON CONFLICT(identity) DO UPDATE SET count=CASE WHEN login_limits.expires>? THEN login_limits.count+1 ELSE 1 END,expires=CASE WHEN login_limits.expires>? THEN login_limits.expires ELSE excluded.expires END').run(identity, now + 15 * 60000, now, now);
+      const account = await db().prepare('SELECT * FROM users WHERE email=?').get(email);
       const verified = checkPassword(body.password, account?.password);
       if (!account?.active || !verified) fail(401, 'Email atau kata sandi tidak sesuai.');
-      db().prepare('DELETE FROM login_limits WHERE identity=?').run(identity);
-      db().prepare('DELETE FROM sessions WHERE expires<?').run(now);
+      await db().prepare('DELETE FROM login_limits WHERE identity=?').run(identity);
+      await db().prepare('DELETE FROM sessions WHERE expires<?').run(now);
       const token = opaque(), csrf = opaque();
-      db().prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token), account.id, csrf, now + 8 * 3600000);
+      await db().prepare('INSERT INTO sessions VALUES(?,?,?,?)').run(digest(token), account.id, csrf, now + 8 * 3600000);
       const res = json({ user: publicUser(account), csrf });
-      res.cookies.set('hitl_session', token, cookieOptions()); audit(account, 'login', '', 200); return res;
+      res.cookies.set('hitl_session', token, cookieOptions()); await audit(account, 'login', '', 200); return res;
     }
-    user = session(req.cookies.get('hitl_session')?.value);
+    user = await session(req.cookies.get('hitl_session')?.value);
     if (!user) fail(401, 'Silakan login kembali.');
     if (method !== 'GET') csrfCheck(req, user);
     if (path === '/me' && method === 'GET') {
@@ -58,34 +58,34 @@ async function handle(req, context) {
       return json({ user: publicUser(user), csrf: user.csrf, attribution });
     }
     if (path === '/logout' && method === 'POST') {
-      db().prepare('DELETE FROM sessions WHERE hash=?').run(user.hash);
+      await db().prepare('DELETE FROM sessions WHERE hash=?').run(user.hash);
       const res = json({ ok: true }); res.cookies.set('hitl_session', '', { ...cookieOptions(), maxAge: 0 }); return res;
     }
     if (path === '/users') {
       if (!hasRole(user, 'admin')) fail(403, 'Hanya admin.');
-      if (method === 'GET') return json({ items: db().prepare('SELECT id,email,name,role,active FROM users WHERE tenant=?').all(user.tenant) });
+      if (method === 'GET') return json({ items: await db().prepare('SELECT id,email,name,role,active FROM users WHERE tenant=?').all(user.tenant) });
       if (method === 'POST') {
         const b = z.object({ email: z.email().max(254), name: z.string().trim().min(1).max(150), role: z.enum(['operator', 'reviewer', 'admin']), password: z.string().min(12).max(128) }).strict().parse(await bodyOf(req));
         const id = randomUUID();
-        if (db().prepare('SELECT id FROM users WHERE email=?').get(b.email.toLowerCase())) fail(409, 'Email tidak dapat digunakan.');
-        db().prepare('INSERT INTO users(id,email,name,tenant,role,password) VALUES(?,?,?,?,?,?)').run(id, b.email.toLowerCase(), b.name, user.tenant, b.role, hashPassword(b.password));
-        audit(user, 'create_user', id, 201); return json({ id }, 201);
+        if (await db().prepare('SELECT id FROM users WHERE email=?').get(b.email.toLowerCase())) fail(409, 'Email tidak dapat digunakan.');
+        await db().prepare('INSERT INTO users(id,email,name,tenant,role,password) VALUES(?,?,?,?,?,?)').run(id, b.email.toLowerCase(), b.name, user.tenant, b.role, hashPassword(b.password));
+        await audit(user, 'create_user', id, 201); return json({ id }, 201);
       }
     }
     if (/^\/users\/[^/]+$/.test(path) && method === 'POST') {
       if (!hasRole(user, 'admin')) fail(403, 'Hanya admin.');
       const id = parts[1], b = z.object({ role: z.enum(['operator', 'reviewer', 'admin']), active: z.boolean() }).strict().parse(await bodyOf(req));
       if (id === user.id) fail(409, 'Ubah akun sendiri melalui admin lain.');
-      const result = db().prepare('UPDATE users SET role=?,active=? WHERE id=? AND tenant=?').run(b.role, Number(b.active), id, user.tenant);
+      const result = await db().prepare('UPDATE users SET role=?,active=? WHERE id=? AND tenant=?').run(b.role, Number(b.active), id, user.tenant);
       if (!result.changes) fail(404, 'Pengguna tidak tersedia.');
-      db().prepare('DELETE FROM sessions WHERE user_id=?').run(id); audit(user, 'update_user', id, 200); return json({ ok: true });
+      await db().prepare('DELETE FROM sessions WHERE user_id=?').run(id); await audit(user, 'update_user', id, 200); return json({ ok: true });
     }
     if (path === '/submissions' && method === 'GET') {
-      const items = db().prepare('SELECT id,idem,service_id,status,created FROM submissions WHERE user_id=? AND tenant=? ORDER BY created DESC LIMIT 100').all(user.id, user.tenant);
+      const items = await db().prepare('SELECT id,idem,service_id,status,created FROM submissions WHERE user_id=? AND tenant=? ORDER BY created DESC LIMIT 100').all(user.id, user.tenant);
       return json({ items, scope: '100 submission terakhir milik akun ini; bukan riwayat global service' });
     }
     if (/^\/submissions\/[^/]+$/.test(path) && method === 'GET') {
-      const row = db().prepare('SELECT * FROM submissions WHERE id=? AND user_id=? AND tenant=?').get(parts[1], user.id, user.tenant);
+      const row = await db().prepare('SELECT * FROM submissions WHERE id=? AND user_id=? AND tenant=?').get(parts[1], user.id, user.tenant);
       if (!row) fail(404, 'Submission tidak tersedia.');
       return json({ ...row, payload: JSON.parse(row.payload) });
     }
@@ -99,13 +99,13 @@ async function handle(req, context) {
       payload = submissionSchema.parse(await bodyOf(req));
       idem = z.string().regex(/^[a-zA-Z0-9:_-]{8,128}$/).parse(req.headers.get('idempotency-key'));
       const encoded = JSON.stringify(payload);
-      const old = db().prepare('SELECT * FROM submissions WHERE tenant=? AND idem=?').get(user.tenant, idem);
+      const old = await db().prepare('SELECT * FROM submissions WHERE tenant=? AND idem=?').get(user.tenant, idem);
       if (old && (old.user_id !== user.id || old.payload !== encoded)) fail(409, 'Idempotency-Key sudah dipakai untuk submission berbeda.');
       localId = old?.id || randomUUID();
-      if (!old) db().prepare('INSERT INTO submissions VALUES(?,?,?,?,?,NULL,?,?)').run(localId, user.id, user.tenant, idem, encoded, 'unknown', Date.now());
+      if (!old) await db().prepare('INSERT INTO submissions VALUES(?,?,?,?,?,NULL,?,?)').run(localId, user.id, user.tenant, idem, encoded, 'unknown', Date.now());
     } else if (path.startsWith('/classifications/')) {
       if (method !== 'GET') fail(405, 'Method tidak diizinkan.');
-      if (!hasRole(user, 'reviewer') && !db().prepare('SELECT id FROM submissions WHERE service_id=? AND user_id=? AND tenant=?').get(parts[1], user.id, user.tenant)) fail(404, 'Klasifikasi tidak tersedia.');
+      if (!hasRole(user, 'reviewer') && !(await db().prepare('SELECT id FROM submissions WHERE service_id=? AND user_id=? AND tenant=?').get(parts[1], user.id, user.tenant))) fail(404, 'Klasifikasi tidak tersedia.');
     } else if (path.endsWith('/decision')) {
       payload = decisionSchema.parse(await bodyOf(req));
       const taxonomy = await upstream(user, '/v1/taxonomy');
@@ -126,13 +126,13 @@ async function handle(req, context) {
     }
     try {
       const data = await upstream(user, '/v1' + path + suffix, { method, body: payload, idempotency: idem, reviewer });
-      if (localId) db().prepare('UPDATE submissions SET service_id=?,status=? WHERE id=?').run(data.id, data.status, localId);
-      if (path.startsWith('/classifications/') && data.id) db().prepare('UPDATE submissions SET status=? WHERE service_id=? AND tenant=?').run(data.status, data.id, user.tenant);
-      audit(user, method + ' ' + path.replace(/\/[a-zA-Z0-9-]{20,}/g, '/:id'), data.id || parts[1], 200);
+      if (localId) await db().prepare('UPDATE submissions SET service_id=?,status=? WHERE id=?').run(data.id, data.status, localId);
+      if (path.startsWith('/classifications/') && data.id) await db().prepare('UPDATE submissions SET status=? WHERE service_id=? AND tenant=?').run(data.status, data.id, user.tenant);
+      await audit(user, method + ' ' + path.replace(/\/[a-zA-Z0-9-]{20,}/g, '/:id'), data.id || parts[1], 200);
       return json(data, 200, localId ? { 'X-Submission-ID': localId } : {});
     } catch (e) {
-      if (localId && e.detail?.classification_id) db().prepare('UPDATE submissions SET service_id=?,status=? WHERE id=?').run(e.detail.classification_id, 'failed', localId);
-      audit(user, method + ' ' + parts[0], parts[1], e.status || 500);
+      if (localId && e.detail?.classification_id) await db().prepare('UPDATE submissions SET service_id=?,status=? WHERE id=?').run(e.detail.classification_id, 'failed', localId);
+      await audit(user, method + ' ' + parts[0], parts[1], e.status || 500);
       if (localId) return json({ error: e.message, detail: e.detail, submission_id: localId }, e.status || 502, e.retryAfter ? { 'Retry-After': e.retryAfter } : {});
       throw e;
     }

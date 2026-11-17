@@ -1,6 +1,6 @@
 export default {
   poweredByHeader: false,
-  serverExternalPackages: ['node:sqlite'],
+  serverExternalPackages: ['pg'],
   async headers() { return [{ source: '/:path*', headers: [
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'Referrer-Policy', value: 'same-origin' },

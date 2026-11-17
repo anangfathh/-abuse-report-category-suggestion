@@ -13,7 +13,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
   process.env.APP_DATABASE_PATH=join(directory,'test.sqlite3');
   const {db,hashPassword}=await import('../lib/store.mjs');
   const password='Fixture-only-password-9021';
-  for(const [id,role,tenant] of [['operator','operator','a'],['reviewer','reviewer','a'],['reviewer2','reviewer','a'],['admin','admin','a'],['outsider','operator','b']]) db().prepare('INSERT INTO users(id,email,name,tenant,role,password) VALUES(?,?,?,?,?,?)').run(id,id+'@example.test',id,tenant,role,hashPassword(password));
+  for(const [id,role,tenant] of [['operator','operator','a'],['reviewer','reviewer','a'],['reviewer2','reviewer','a'],['admin','admin','a'],['outsider','operator','b']]) await db().prepare('INSERT INTO users(id,email,name,tenant,role,password) VALUES(?,?,?,?,?,?)').run(id,id+'@example.test',id,tenant,role,hashPassword(password));
   const cases=new Map(),keys=new Map(),reviews=new Map(),knowledge=new Map(),calls=[];
   let mutation=0,dropNextDecision=false,failedOnce=false;
   const taxonomy={version:'fixture-policy',categories:[{id:'violence',label:'Kekerasan',subcategories:[{id:'violence.threat',label:'Ancaman',evidence_requirement:'text'}]}]};
@@ -67,7 +67,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
   const origin='http://127.0.0.1:'+port,base='http://127.0.0.1:'+upstream.address().port;
   const app=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{cwd:process.cwd(),env:{...process.env,NODE_ENV:'production',APP_ORIGIN:origin,COOKIE_SECURE:'false',MODERATION_TENANTS_JSON:JSON.stringify({a:{baseUrl:base,clientKey:'a-client-fixture',reviewerKey:'a-reviewer-fixture'},b:{baseUrl:base,clientKey:'b-client-fixture',reviewerKey:'b-reviewer-fixture'}})},stdio:['ignore','pipe','pipe']});
   let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);
-  t.after(async()=>{app.kill('SIGTERM');await Promise.race([once(app,'exit'),new Promise(r=>setTimeout(r,3000))]);upstream.closeAllConnections();await new Promise(r=>upstream.close(r));db().close();rmSync(directory,{recursive:true,force:true});});
+  t.after(async()=>{app.kill('SIGTERM');await Promise.race([once(app,'exit'),new Promise(r=>setTimeout(r,3000))]);upstream.closeAllConnections();await new Promise(r=>upstream.close(r));await db().close();rmSync(directory,{recursive:true,force:true});});
   for(let i=0;i<100;i++){try{if((await fetch(origin+'/api/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));if(i===99)throw Error('Next startup failed: '+logs);}
   const agents={};
   async function request(path,{actor='operator',method='GET',body,idem,csrf=true,originHeader=origin}={}){
