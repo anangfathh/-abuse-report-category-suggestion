@@ -99,14 +99,14 @@ export function Empty({ title, description, isCompact = true, icon, actions }) {
 
 /** Kartu yang bisa dibuka-tutup; trigger dan isi diberi padding yang konsisten. */
 export function DisclosureCard({ title, meta, defaultIsOpen = false, children }) {
-  return <Card padding={0}>
-    <Collapsible defaultIsOpen={defaultIsOpen} trigger={<VStack gap={0.5} paddingInlineStart={4} paddingBlock={3}>
+  return <div className="disclosure-card"><Card padding={0}>
+    <Collapsible defaultIsOpen={defaultIsOpen} trigger={<VStack gap={0.5} paddingBlock={3}>
       <Text weight="semibold" maxLines={2} wordBreak="break-word">{title}</Text>
       {meta && <Text type="supporting">{meta}</Text>}
     </VStack>}>
       <VStack gap={4} padding={4} paddingBlockStart={1}>{children}</VStack>
     </Collapsible>
-  </Card>;
+  </Card></div>;
 }
 
 /** JSON mentah (read-only, bisa disalin) untuk keperluan audit/debug. */

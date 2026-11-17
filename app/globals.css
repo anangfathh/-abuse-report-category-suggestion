@@ -46,3 +46,18 @@ body {
 .source-content { font-size: var(--font-size-lg, 16px); }
 
 .boot { display: grid; place-items: center; min-height: 100dvh; }
+
+/* Top bar menempel di atas area konten saat halaman di-scroll. */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--color-background-surface) 88%, transparent);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+}
+.topbar-inner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px;
+  max-width: 1240px; margin: 0 auto; padding: 10px 16px;
+}
+
+/* Beri ruang di kiri/kanan trigger kartu lipat supaya teks dan chevron tidak mepet tepi kartu. */
+.disclosure-card .astryx-collapsible-trigger { padding-inline: 16px; gap: 12px; }

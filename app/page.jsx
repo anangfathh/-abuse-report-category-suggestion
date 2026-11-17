@@ -163,15 +163,15 @@ export default function App() {
   </SideNav>;
 
   return <AppShell sideNav={sideNav} contentPadding={0} variant="elevated">
+    <div className="topbar"><div className="topbar-inner">
+      <Breadcrumbs variant="supporting" label="Lokasi halaman">
+        <BreadcrumbItem>Workspace</BreadcrumbItem>
+        <BreadcrumbItem isCurrent>{page === 'new' ? 'Category suggestion' : heading[1]}</BreadcrumbItem>
+      </Breadcrumbs>
+      <HStack gap={3} vAlign="center"><Badge variant="neutral" label="𝕏 Policy mapping" /><ThemeToggle /></HStack>
+    </div></div>
     <Layout contentWidth={1240} height="auto">
       <LayoutContent><VStack gap={6}>
-        <HStack gap={3} vAlign="center" wrap="wrap" justify="between">
-          <Breadcrumbs variant="supporting" label="Lokasi halaman">
-            <BreadcrumbItem>Workspace</BreadcrumbItem>
-            <BreadcrumbItem isCurrent>{page === 'new' ? 'Category suggestion' : heading[1]}</BreadcrumbItem>
-          </Breadcrumbs>
-          <HStack gap={3} vAlign="center"><Badge variant="neutral" label="𝕏 Policy mapping" /><ThemeToggle /></HStack>
-        </HStack>
         <PageHeader eyebrow={heading[0]} title={heading[1]} description={heading[2]} />
         <Notice kind="error">{error}</Notice>
         <Notice kind="info">{notice}</Notice>
