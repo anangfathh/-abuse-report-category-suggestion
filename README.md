@@ -127,3 +127,7 @@ RUN_BROWSER_TESTS=1 CHROMIUM_PATH=/path/to/chrome npm test
 Integration test menjalankan build Next produksi, service fixture HTTP di localhost, database sementara, dan user fixture. Alur final langsung dan pending → manusia → final diuji, termasuk correction, konflik revision, tenant/RBAC/CSRF, idempotency respons hilang, 429/401/413/422/502/504, dan tidak ada POST knowledge tambahan. Browser test menulis `docs/screenshots/*.png` menggunakan fixture. Jangan mengarahkan test ke service produksi.
 
 Live contract read-only diperiksa terpisah, tanpa menyalin credential/konten. Hasil sanitasi: `docs/live-contract-smoke.json`. Tidak melakukan live mutation/classification/keputusan reviewer dalam tenant produksi. Status dan batas verifikasi lengkap di `docs/VERIFICATION.md`.
+
+## NarasiAhli API integration
+
+Production uses NarasiAhli `/api/v1/external/moderation-review` for classification and human-review workflow. `MODERATION_TENANTS_JSON` configures the service base URL and server-only API Integration key. The key needs `moderation:read`, `moderation:classify`, and `moderation:review`; use the same integration key for client and reviewer access to the same case scope. Application login and reviewer roles remain enforced separately. The API key must never be exposed to the browser or committed.
