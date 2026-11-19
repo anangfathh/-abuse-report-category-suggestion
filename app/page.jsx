@@ -129,7 +129,7 @@ export default function App() {
   function fresh() { setForm(blank); setAttempt(null); setResult(null); setPreviewInput(null); setError(''); setNotice(''); }
   function startNew() { if (!result || ['pending_review', 'processing'].includes(result.status)) setConfirmNew(true); else fresh(); }
   async function signOut() { try { await api('/logout', { method: 'POST' }); setUser(null); setCsrf(''); fresh(); setRows([]); setReview(null); setTaxonomy(null); } catch (e) { setError(e.message); } }
-  const reloadTaxonomy = async () => { try { setTaxonomy(await api('/taxonomy')); setError(''); } catch (e) { setError(e.message); } };
+  const reloadTaxonomy = async (language = taxonomy?.language || 'id') => { try { setTaxonomy(await api('/taxonomy?platform=x&language=' + language)); setError(''); } catch (e) { setError(e.message); } };
 
   if (boot) return <div className="boot"><Spinner size="lg" label="Memuat workspace…" /></div>;
   if (!user) return <Login onLogin={async body => { const data = await api('/login', { method: 'POST', body, login: true }); setUser(data.user); setCsrf(data.csrf); await bootstrap(); }} />;
@@ -144,7 +144,7 @@ export default function App() {
       <Avatar name={user.name} size="sm" tooltip={false} />
       <StackItem size="fill"><VStack gap={0}>
         <Text weight="medium" maxLines={1}>{user.name}</Text>
-        <Text type="supporting" maxLines={1}>{user.role} · {user.tenant}</Text>
+        <Text type="supporting" maxLines={1}>{user.role}</Text>
       </VStack></StackItem>
       <IconButton label="Keluar" icon={<Icon icon={LogOut} />} variant="ghost" size="sm" isDisabled={busy} onClick={signOut} />
     </HStack>}>
@@ -182,6 +182,8 @@ export default function App() {
             <Panel title="Konten yang ingin diperiksa" actions={<Badge variant="neutral" label="𝕏" />}>
               <form onSubmit={submit}>
                 <VStack gap={5}>
+                  <label>Platform <select value={form.platform} disabled={busy || locked} onChange={e => setForm({ ...form, platform: e.target.value })}><option value="x">X</option></select></label>
+                  <label>Bahasa hasil <select value={form.language || 'id'} disabled={busy || locked} onChange={e => setForm({ ...form, language: e.target.value === 'id' ? undefined : e.target.value })}><option value="id">Bahasa Indonesia</option><option value="en">English</option></select></label>
                   <TextArea label="Teks konten" isRequired rows={7} maxLength={8000} htmlMaxLength={8000} value={form.content} isDisabled={busy || locked}
                     placeholder="Tempel teks postingan atau balasan yang ingin ditinjau…" onChange={value => setForm({ ...form, content: value })} />
                   <TextArea label="Konteks tambahan" isOptional rows={3} maxLength={3000} htmlMaxLength={3000} value={form.context} isDisabled={busy || locked}
@@ -224,7 +226,7 @@ export default function App() {
           <Panel title="Kategori dimuat dari taxonomy service." description="Snapshot kebijakan, bukan replika lengkap menu Report X atau keputusan resmi platform.">
             {taxonomy
               ? <HStack gap={2} wrap="wrap">{taxonomy.categories.map(c => <Badge key={c.id} variant="neutral" label={c.label} />)}</HStack>
-              : <HStack><Button variant="secondary" size="sm" label="Muat ulang taxonomy" onClick={reloadTaxonomy} /></HStack>}
+              : <HStack><Button variant="secondary" size="sm" label="Muat ulang taxonomy" onClick={() => reloadTaxonomy()} /></HStack>}
           </Panel>
           <AlertDialog isOpen={confirmNew} onOpenChange={setConfirmNew} title="Mulai submission baru?"
             description="Submission sebelumnya belum final. Referensinya tetap ada di Submission saya."

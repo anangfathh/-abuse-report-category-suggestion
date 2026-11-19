@@ -12,11 +12,11 @@ for name in (app_schema,review_schema):
     if not re.fullmatch(r'[a-z_][a-z0-9_]{0,62}',name): raise ValueError('Invalid schema name')
 if app_schema == review_schema: raise ValueError('Schemas must be distinct')
 app_ddl="""
-CREATE TABLE users(id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,name TEXT NOT NULL,tenant TEXT NOT NULL,role TEXT NOT NULL,password TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE users(id TEXT PRIMARY KEY,email TEXT UNIQUE NOT NULL,name TEXT NOT NULL,role TEXT NOT NULL,password TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1);
 CREATE TABLE sessions(hash TEXT PRIMARY KEY,user_id TEXT NOT NULL,csrf TEXT NOT NULL,expires BIGINT NOT NULL);
 CREATE TABLE login_limits(identity TEXT PRIMARY KEY,count INTEGER NOT NULL,expires BIGINT NOT NULL);
-CREATE TABLE submissions(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,tenant TEXT NOT NULL,idem TEXT NOT NULL,payload TEXT NOT NULL,service_id TEXT,status TEXT NOT NULL,created BIGINT NOT NULL,UNIQUE(tenant,idem));
-CREATE TABLE audit(id BIGSERIAL PRIMARY KEY,actor TEXT NOT NULL,tenant TEXT NOT NULL,action TEXT NOT NULL,object_id TEXT,status INTEGER NOT NULL,created BIGINT NOT NULL);
+CREATE TABLE submissions(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,idem TEXT NOT NULL,payload TEXT NOT NULL,service_id TEXT,status TEXT NOT NULL,created BIGINT NOT NULL,UNIQUE(idem));
+CREATE TABLE audit(id BIGSERIAL PRIMARY KEY,actor TEXT NOT NULL,action TEXT NOT NULL,object_id TEXT,status INTEGER NOT NULL,created BIGINT NOT NULL);
 """
 app_tables=['users','sessions','login_limits','submissions','audit']
 review_tables=['api_keys','cases','reviews','review_events','knowledge','audit','rate','leases']
@@ -25,6 +25,8 @@ def copy_tables(pg, sqlite_path, schema, tables):
     try:
         for table in tables:
             columns=[r[1] for r in src.execute('PRAGMA table_info('+table+')')]
+            if schema == app_schema and table in ('users','submissions','audit'):
+                columns=[c for c in columns if c != 'tenant']
             if not columns: raise RuntimeError('Missing SQLite table '+table)
             rows=src.execute('SELECT '+','.join('"'+c+'"' for c in columns)+' FROM '+table).fetchall()
             q=sql.SQL('INSERT INTO {}.{} ({}) VALUES ({})').format(sql.Identifier(schema),sql.Identifier(table),sql.SQL(',').join(map(sql.Identifier,columns)),sql.SQL(',').join(sql.Placeholder() for _ in columns))

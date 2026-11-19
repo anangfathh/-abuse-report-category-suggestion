@@ -4,7 +4,7 @@ Aplikasi web **mandiri** untuk PRD pada `docs/PRD-HITL-Kategorisasi-X.md`. Front
 
 Deployment Docker: **https://abuse-reporter.qudo.id**. Detail routing/TLS/operasional ada di [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Akses memerlukan akun dari admin; credential tidak disertakan di repository.
 
-**Sumber prediksi terbaru:** sesuai klarifikasi owner, prediksi baru memakai **API NarasiAhli lama** `/api/v1/external/moderation/classify`. Lapisan review tetap menangani antrean/knowledge. Detail alur, key, opt-in tenant dan bukti panggilan ada di [docs/NARASIAHLI-PREDICTION.md](docs/NARASIAHLI-PREDICTION.md). Klarifikasi ini menggantikan batas “tidak memanggil API NarasiAhli” pada handoff awal; data/auth aplikasi tetap terpisah.
+**Sumber prediksi terbaru:** sesuai klarifikasi owner, prediksi baru memakai **API NarasiAhli lama** `/api/v1/external/moderation/classify`. Lapisan review tetap menangani antrean/knowledge. Detail alur, key, konfigurasi dan bukti panggilan ada di [docs/NARASIAHLI-PREDICTION.md](docs/NARASIAHLI-PREDICTION.md). Klarifikasi ini menggantikan batas “tidak memanggil API NarasiAhli” pada handoff awal; data/auth aplikasi tetap terpisah.
 
 ## Antarmuka (Astryx)
 
@@ -12,12 +12,12 @@ UI memakai [Astryx](https://astryx.atmeta.com) (`@astryxdesign/core` + `@astryxd
 
 ## Fitur
 
-- Login manusia, session opaque HttpOnly/SameSite Strict, CSRF + pemeriksaan Origin, scrypt password hashing, rate limit login; role operator/reviewer/admin dan tenant server-side.
+- Login manusia, session opaque HttpOnly/SameSite Strict, CSRF + pemeriksaan Origin, scrypt password hashing, rate limit login; role operator/reviewer/admin server-side.
 - Klasifikasi konten, state processing/pending/completed/failed, seluruh findings/bukti/kebijakan, sumber keputusan dan taxonomy dinamis.
 - Ledger submission server-side per pengguna. Key/payload tersimpan sebelum request upstream. Retry respons hilang memakai key/payload asli; proses baru memakai key baru dengan tindakan eksplisit. Bukan daftar klasifikasi global service.
 - Antrean pending/selesai, pagination, workspace manusia, validasi rule/reuse/bukti, revision optimistic, koreksi dan audit service. Prediksi tidak otomatis menjadi keputusan manusia.
 - Knowledge, provenance, expiry/revoked/index-error terpisah; revoke/reindex admin-only di BFF. Tidak ada bank knowledge atau antrean review paralel.
-- Pengguna/role admin pada tenant sendiri. Penggantian role/nonaktif menghapus session target. Tidak ada self-demotion melalui halaman admin.
+- Pengguna/role untuk lingkungan internal. Penggantian role/nonaktif menghapus session target. Tidak ada self-demotion melalui halaman admin.
 - Polling 30 detik antrean dan 15 detik detail pending/processing; pause saat tab hidden, tanpa overlapping polling, backoff error, Retry-After 429.
 
 ## Menjalankan
@@ -31,16 +31,17 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Buka `http://localhost:3040` (atau ganti APP_ORIGIN dan alamat browser agar persis sama). Konfigurasi tenant di `.env.local` berupa JSON satu baris:
+Buka `http://localhost:3040` (atau ganti APP_ORIGIN dan alamat browser agar persis sama). Konfigurasi integrasi di `.env.local` memakai base URL dan satu API key server:
 
 ```dotenv
 APP_ORIGIN=http://localhost:3040
 COOKIE_SECURE=false
 APP_DATABASE_URL=postgresql://app_user:replace-me@localhost:5432/abuse_reporter_db
-MODERATION_TENANTS_JSON={"team-a":{"baseUrl":"http://127.0.0.1:8030","clientKey":"<client-key-server-side>","reviewerKey":"<shared-reviewer-key-server-side>","reviewerKeys":{}}}
+MODERATION_API_BASE_URL=https://narasiahli.qudo.id/api/v1/external/moderation-review
+MODERATION_API_KEY=<server-side-integration-key>
 ```
 
-Gunakan **key berbeda per tenant**. Key client untuk classification/taxonomy; key reviewer untuk review/knowledge. Jangan masukkan key ke browser, URL, log, source, atau GitHub. Key server tidak dikirimkan ke browser. Base URL dapat diganti tanpa perubahan source. Jangan mengarahkan runtime ke host yang tidak dipercaya.
+Aplikasi ini memakai **satu key integrasi bersama** untuk classification, taxonomy, review, dan knowledge. Semua pengguna aplikasi yang berwenang menggunakan key dan cakupan data yang sama. Jangan masukkan key ke browser, URL, log, source, atau GitHub. Key server tidak dikirimkan ke browser. Base URL dapat diganti tanpa perubahan source. Jangan mengarahkan runtime ke host yang tidak dipercaya.
 
 ### Akun admin pertama
 
@@ -49,7 +50,7 @@ CLI bukan endpoint publik. Masukkan password tanpa menaruh nilai literal di comm
 ```sh
 read -rs -p 'Password admin (minimal 12 karakter): ' BOOTSTRAP_PASSWORD
 export BOOTSTRAP_PASSWORD
-npm run user:add -- admin@example.com team-a admin 'Admin Tim'
+npm run user:add -- admin@example.com admin 'Admin Tim'
 unset BOOTSTRAP_PASSWORD
 ```
 
@@ -57,9 +58,9 @@ CLI mencetak ID user, bukan password. Login dengan akun itu; admin menambah oper
 
 ### Atribusi reviewer
 
-Provision key reviewer per manusia melalui **CLI service moderation**, bukan UI ini. Masukkan pemetaan `reviewerKeys: {"<application-user-id>":"<service-reviewer-key>"}` pada tenant server-side. Bila key individual tidak tersedia, BFF memakai shared reviewerKey. UI memberi label bahwa actor service adalah akun integrasi bersama; audit aplikasi menyimpan ID manusia. Jangan mengklaim audit service mengetahui manusia individual saat menggunakan key bersama.
+Service mencatat actor sebagai akun integrasi bersama. Audit aplikasi mencatat ID pengguna yang mengambil tindakan; jangan mengklaim service mengetahui identitas manusia individual hanya dari API key.
 
-Session adalah random token 256-bit; DB menyimpan hash token dan CSRF token, expiry 8 jam, role/tenant dibaca dari user server pada tiap request. `SESSION_SECRET` dari contoh PRD tidak diperlukan karena token opaque bukan cookie payload yang ditandatangani. Tidak ada draft/key di localStorage. Password minimal 12 karakter untuk provisioning.
+Session adalah random token 256-bit; DB menyimpan hash token dan CSRF token, expiry 8 jam, role dibaca dari user server pada tiap request. `SESSION_SECRET` dari contoh PRD tidak diperlukan karena token opaque bukan cookie payload yang ditandatangani. Tidak ada draft/key di localStorage. Password minimal 12 karakter untuk provisioning.
 
 ## Production
 
@@ -81,7 +82,7 @@ Provision admin sebelum membuka aplikasi menggunakan CLI di container dengan vol
 
 ## Route BFF
 
-Browser hanya berbicara same-origin `/api/*`; BFF mengisi credential dari tenant user yang login.
+Browser hanya berbicara same-origin `/api/*`; BFF menggunakan credential integrasi bersama yang disimpan di server.
 
 | Route | Role minimum | Kegunaan |
 |---|---|---|
@@ -89,16 +90,16 @@ Browser hanya berbicara same-origin `/api/*`; BFF mengisi credential dari tenant
 | GET /api/me; POST /api/logout | login | identitas/CSRF, logout |
 | GET /api/taxonomy | operator | taxonomy service |
 | POST /api/classifications | operator | submit + Idempotency-Key |
-| GET /api/classifications/:id | operator milik sendiri / reviewer tenant | detail service |
+| GET /api/classifications/:id | operator milik sendiri / reviewer | detail service |
 | GET /api/submissions; GET /api/submissions/:id | pemilik | ledger aplikasi, maksimal 100 terbaru |
 | GET /api/reviews; GET /api/reviews/:id | reviewer | antrean/detail service |
 | POST /api/reviews/:id/decision | reviewer | keputusan/koreksi, revision top-level |
 | GET /api/knowledge | reviewer | daftar service |
 | POST /api/knowledge/:id/revoke atau /reindex | admin | tindakan knowledge service |
-| GET/POST /api/users; POST /api/users/:id | admin tenant | daftar/provision/role/nonaktif |
+| GET/POST /api/users; POST /api/users/:id | admin | daftar/provision/role/nonaktif |
 | GET /api/health | publik | kesehatan proses aplikasi, bukan kesehatan classifier |
 
-Mutations selain login wajib `X-CSRF-Token` dari `/api/me` dan Origin cocok APP_ORIGIN. POST decision tidak menambah field buatan UI; checkbox manusia hanya pengaman UI. Key tenant/role tidak diterima dari payload browser. Role operator tidak dapat membaca submission operator lain; reviewer tetap dibatasi tenant service credential. Semua upstream route/method di-allowlist.
+Mutations selain login wajib `X-CSRF-Token` dari `/api/me` dan Origin cocok APP_ORIGIN. POST decision tidak menambah field buatan UI; checkbox manusia hanya pengaman UI. Key integrasi atau role tidak diterima dari payload browser. Role operator tidak dapat membaca submission operator lain; reviewer tetap dibatasi tenant service credential. Semua upstream route/method di-allowlist.
 
 ## Timeout dan konflik
 
@@ -110,7 +111,7 @@ Mutations selain login wajib `X-CSRF-Token` dari `/api/me` dan Origin cocok APP_
 
 ## Retensi, backup, audit
 
-Skema PostgreSQL `abuse_reporter` menyimpan password hash, session, metadata audit (actor/tenant/action/object/status/waktu) dan **payload submission** untuk recovery. Tidak menyimpan prediction sebagai knowledge. Lindungi database dan backup karena payload dapat sensitif.
+Skema PostgreSQL `abuse_reporter` menyimpan password hash, session, metadata audit (actor/action/object/status/waktu) dan **payload submission** untuk recovery. Tidak menyimpan prediction sebagai knowledge. Lindungi database dan backup karena payload dapat sensitif.
 
 Retensi pilot: data submission/audit bertahan sampai operator menghapusnya; **belum ada auto-purge**. Tentukan kebijakan retensi organisasi sebelum produksi, dan hapus ledger kedaluwarsa lewat maintenance aplikasi (tidak menghapus data service). Session expired dibersihkan ketika login berhasil. Backup SQLite menggunakan `.backup`/SQLite backup API atau snapshot volume dengan prosedur konsisten; jangan hanya menyalin file DB saat WAL aktif. Restore backup ke aplikasi yang dihentikan, lalu verifikasi permission. Jangan commit DB/backup.
 
@@ -128,13 +129,13 @@ RUN_BROWSER_TESTS=1 npm test
 RUN_BROWSER_TESTS=1 CHROMIUM_PATH=/path/to/chrome npm test
 ```
 
-Integration test menjalankan build Next produksi, service fixture HTTP di localhost, database sementara, dan user fixture. Alur final langsung dan pending → manusia → final diuji, termasuk correction, konflik revision, tenant/RBAC/CSRF, idempotency respons hilang, 429/401/413/422/502/504, dan tidak ada POST knowledge tambahan. Browser test menulis `docs/screenshots/*.png` menggunakan fixture. Jangan mengarahkan test ke service produksi.
+Integration test menjalankan build Next produksi, service fixture HTTP di localhost, database sementara, dan user fixture. Alur final langsung dan pending → manusia → final diuji, termasuk correction, konflik revision, RBAC/CSRF, idempotency respons hilang, 429/401/413/422/502/504, dan tidak ada POST knowledge tambahan. Browser test menulis `docs/screenshots/*.png` menggunakan fixture. Jangan mengarahkan test ke service produksi.
 
-Live contract read-only diperiksa terpisah, tanpa menyalin credential/konten. Hasil sanitasi: `docs/live-contract-smoke.json`. Tidak melakukan live mutation/classification/keputusan reviewer dalam tenant produksi. Status dan batas verifikasi lengkap di `docs/VERIFICATION.md`.
+Live contract read-only diperiksa terpisah, tanpa menyalin credential/konten. Hasil sanitasi: `docs/live-contract-smoke.json`. Tidak melakukan live mutation/classification/keputusan reviewer pada produksi. Status dan batas verifikasi lengkap di `docs/VERIFICATION.md`.
 
 ## NarasiAhli API integration
 
-Production uses NarasiAhli `/api/v1/external/moderation-review` for classification and human-review workflow. `MODERATION_TENANTS_JSON` configures the service base URL and server-only API Integration key. The key needs `moderation:read`, `moderation:classify`, and `moderation:review`; use the same integration key for client and reviewer access to the same case scope. Application login and reviewer roles remain enforced separately. The API key must never be exposed to the browser or committed.
+Production uses NarasiAhli `/api/v1/external/moderation-review` for classification and human-review workflow. `MODERATION_API_BASE_URL` and `MODERATION_API_KEY` configure the service base URL and one server-only API Integration key. The key needs `moderation:read`, `moderation:classify`, and `moderation:review`; the same integration key is used for client and reviewer access to the same case scope. Application login and reviewer roles remain enforced separately. The API key must never be exposed to the browser or committed.
 
 For Docker deployments, set `NARASIAHLI_IP` in the Compose environment to the private IP serving HTTPS for `narasiahli.qudo.id`. Compose adds a host mapping for this domain, so the application can reach the existing ingress even when the server DNS resolver is unavailable.
 
@@ -145,3 +146,12 @@ Aplikasi membutuhkan `APP_DATABASE_URL` yang menunjuk ke database khusus `abuse_
 ## Riwayat berdasarkan API key
 
 Halaman Submission menampilkan riwayat klasifikasi Narasiahli untuk key integrasi organisasi dan riwayat submission akun aplikasi secara terpisah. Riwayat API dapat diakses pengguna dalam organisasi yang memakai key tersebut; key tidak dikirim ke browser. Klasifikasi sebelum fitur riwayat diaktifkan tidak otomatis muncul.
+
+## Migrasi ke satu lingkungan internal
+
+Aplikasi tidak memakai tenant. Pada database lama, buat backup PostgreSQL yang terverifikasi dan hentikan penulisan sebelum menjalankan `node scripts/remove-tenant.mjs --apply`. Tanpa `--apply`, perintah hanya memeriksa keamanan migrasi. Migrasi akan menolak penggabungan bila ditemukan lebih dari satu tenant atau konflik idempotency; baris akun, submission dan audit dipertahankan. Data dan konfigurasi Narasiahli tidak diubah.
+
+## Panduan penggunaan
+
+- [Panduan API untuk aplikasi eksternal](docs/PANDUAN-API-EKSTERNAL.md)
+- [Panduan pengguna Abuse Reporter](docs/PANDUAN-PENGGUNA.md)

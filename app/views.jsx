@@ -84,8 +84,10 @@ export function Taxonomy({ taxonomy, reload }) {
   const searching = Boolean(query.trim());
   return <Panel title="Referensi kategori"
     description={taxonomy ? `${categories.length} kategori · ${categories.reduce((sum, c) => sum + c.subcategories.length, 0)} subkategori` : 'Taxonomy belum tersedia'}
-    actions={<ReloadButton onClick={reload} />}>
+    actions={<ReloadButton onClick={() => reload()} />}>
     {taxonomy ? <>
+      <label>Platform <select value={taxonomy.platform} onChange={() => {}}><option value="x">X</option></select></label>
+      <label>Bahasa taxonomy <select value={taxonomy.language || 'id'} onChange={e => reload(e.target.value)}><option value="id">Bahasa Indonesia</option><option value="en">English</option></select></label>
       <MetadataList orientation="horizontal">
         <MetadataListItem label="Versi">{taxonomy.version}</MetadataListItem>
         <MetadataListItem label="Ditinjau">{taxonomy.researched_at || '—'}</MetadataListItem>
@@ -98,6 +100,7 @@ export function Taxonomy({ taxonomy, reload }) {
           return <DisclosureCard key={category.id + (searching ? ':search' : '')} defaultIsOpen={searching}
             title={category.label} meta={`${category.id} · ${category.subcategories.length} subkategori`}>
             {category.policy_title && <Text type="supporting">{category.policy_title}{category.source_updated ? ` · diperbarui ${category.source_updated}` : ''}</Text>}
+            {category.source_topics?.length > 0 && <Text as="p"><Text weight="semibold">Topik dalam sumber X:</Text> {category.source_topics.map(t => t.label).join(' · ')}</Text>}
             {category.exceptions && <Text as="p"><Text weight="semibold">Konteks & pengecualian:</Text> {category.exceptions}</Text>}
             {source && <HStack><Link href={source} isExternalLink>Baca sumber kebijakan</Link></HStack>}
             <Grid columns={{ minWidth: 260 }} gap={3}>
@@ -435,7 +438,7 @@ export function Users({ rows, user, api, refresh, setError }) {
             <Selector label="Role" value={role} options={ROLES} onChange={setRole} isDisabled={busy} />
           </FormLayout>
           <HStack><Button type="submit" variant="primary" label="Buat pengguna" isLoading={busy} isDisabled={busy || !name || !email || password.length < 12} /></HStack>
-          <Text type="supporting" color="secondary">Tenant mengikuti admin. Key reviewer per manusia diprovision terpisah pada service; ID pengguna dipakai pada pemetaan server.</Text>
+          <Text type="supporting" color="secondary">Seluruh akun menggunakan integrasi bersama. Identitas pengguna dicatat pada audit aplikasi.</Text>
         </VStack>
       </form>
     </Panel>

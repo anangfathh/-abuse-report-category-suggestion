@@ -8,12 +8,12 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 
-test('real BFF: login, roles, tenants, direct final, review/correction, retries and error recovery', {timeout:120000}, async t => {
+test('real BFF: login, roles, direct final, review/correction, retries and error recovery', {timeout:120000}, async t => {
   const directory=mkdtempSync(join(tmpdir(),'abuse-reporter-test-'));
   process.env.APP_DATABASE_PATH=join(directory,'test.sqlite3');
   const {db,hashPassword}=await import('../lib/store.mjs');
   const password='Fixture-only-password-9021';
-  for(const [id,role,tenant] of [['operator','operator','a'],['reviewer','reviewer','a'],['reviewer2','reviewer','a'],['admin','admin','a'],['outsider','operator','b']]) await db().prepare('INSERT INTO users(id,email,name,tenant,role,password) VALUES(?,?,?,?,?,?)').run(id,id+'@example.test',id,tenant,role,hashPassword(password));
+  for(const [id,role] of [['operator','operator'],['reviewer','reviewer'],['reviewer2','reviewer'],['admin','admin'],['outsider','operator']]) await db().prepare('INSERT INTO users(id,email,name,role,password) VALUES(?,?,?,?,?)').run(id,id+'@example.test',id,role,hashPassword(password));
   const cases=new Map(),keys=new Map(),reviews=new Map(),knowledge=new Map(),calls=[];
   let mutation=0,dropNextDecision=false,failedOnce=false;
   const taxonomy={version:'fixture-policy',categories:[{id:'violence',label:'Kekerasan',subcategories:[{id:'violence.threat',label:'Ancaman',evidence_requirement:'text'}]}]};
@@ -67,7 +67,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
   upstream.listen(0,'127.0.0.1');await once(upstream,'listening');
   const probe=createServer();probe.listen(0,'127.0.0.1');await once(probe,'listening');const port=probe.address().port;await new Promise(r=>probe.close(r));
   const origin='http://127.0.0.1:'+port,base='http://127.0.0.1:'+upstream.address().port;
-  const app=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{cwd:process.cwd(),env:{...process.env,NODE_ENV:'production',APP_ORIGIN:origin,COOKIE_SECURE:'false',MODERATION_TENANTS_JSON:JSON.stringify({a:{baseUrl:base+'/api/v1/external/moderation-review',clientKey:'a-client-fixture',reviewerKey:'a-reviewer-fixture'},b:{baseUrl:base+'/api/v1/external/moderation-review',clientKey:'b-client-fixture',reviewerKey:'b-reviewer-fixture'}})},stdio:['ignore','pipe','pipe']});
+  const app=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port',String(port)],{cwd:process.cwd(),env:{...process.env,NODE_ENV:'production',APP_ORIGIN:origin,COOKIE_SECURE:'false',MODERATION_API_BASE_URL:base+'/api/v1/external/moderation-review',MODERATION_API_KEY:'a-client-fixture'},stdio:['ignore','pipe','pipe']});
   let logs='';app.stdout.on('data',d=>logs+=d);app.stderr.on('data',d=>logs+=d);
   t.after(async()=>{app.kill('SIGTERM');await Promise.race([once(app,'exit'),new Promise(r=>setTimeout(r,3000))]);upstream.closeAllConnections();await new Promise(r=>upstream.close(r));await db().close();rmSync(directory,{recursive:true,force:true});});
   for(let i=0;i<100;i++){try{if((await fetch(origin+'/api/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));if(i===99)throw Error('Next startup failed: '+logs);}
@@ -93,7 +93,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
     const r=await request('/api-history'); assert.equal(r.status,200); assert.equal(r.data.items[0].input.content,'Contoh riwayat API');
     assert.equal(JSON.stringify(r.data).includes('a-client-fixture'),false);
   });
-  await t.test('direct finals, unknown response idempotency, tenant/ownership isolation',async()=>{
+  await t.test('direct finals, unknown response idempotency and ownership isolation',async()=>{
     for(const content of ['safe','violation','exact','similar','legacy']){const r=await submit(content);assert.equal(r.status,200);assert.equal(r.data.status,'completed');if(content==='exact')assert.equal(r.data.prediction,null);}
     const idempotency=randomUUID(),lost=await submit('lost','operator',idempotency);assert.equal(lost.status,504);assert.ok(lost.data.submission_id);
     const count=cases.size,retry=await submit('lost','operator',idempotency);assert.equal(retry.status,200);assert.equal(cases.size,count);
@@ -128,7 +128,7 @@ test('real BFF: login, roles, tenants, direct final, review/correction, retries 
     assert.equal((await request('/knowledge/id',{actor:'reviewer'})).status,404);
     assert.equal((await request('/reviews/id/claim',{actor:'reviewer',method:'POST'})).status,404);
   });
-  await t.test('keys not present in browser responses or HTML, admin tenant cannot be injected',async()=>{
+  await t.test('keys not present in browser responses or HTML, extra account fields cannot be injected',async()=>{
     const html=await (await fetch(origin)).text();assert.ok(html.includes('Abuse Reporter'));
     for(const p of ['/me','/submissions','/taxonomy']){const r=await request(p);const serialized=JSON.stringify(r.data);assert.equal(serialized.includes('a-client-fixture'),false);assert.equal(serialized.includes('a-reviewer-fixture'),false);}
     assert.equal((await request('/users',{actor:'admin',method:'POST',body:{email:'new@example.test',name:'New operator',role:'operator',password,tenant:'b'}})).status,422);
