@@ -28,7 +28,7 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { VStack } from '@astryxdesign/core/VStack';
 import { Braces, Hourglass, LogIn, RefreshCw } from 'lucide-react';
-import { stateOf, policyLink, knowledgeState, filterTaxonomy } from '../lib/domain.mjs';
+import { stateOf, policyLink, knowledgeState, filterTaxonomy, jobStatusNames, jobStatusVariants, formatWait, queueHealth } from '../lib/domain.mjs';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { DisclosureCard, Empty, Findings, JsonBlock, JsonDisclosure, ListHead, Mono, Notice, PAGE_SIZE, Panel, PaginationBar, ReloadButton, Result, StateBadge, ThemeToggle, date } from './ui.jsx';
 
@@ -216,6 +216,80 @@ export function ReviewQueue({ rows, total, offset, setOffset, queue, setQueue, r
     </VStack> : <Empty title="Tidak ada review pada halaman ini." />}
     <PaginationBar offset={offset} total={total} setOffset={setOffset} />
   </Panel>;
+}
+
+/* ───────────────────────────── Antrean klasifikasi ───────────────────────────── */
+const JOB_TABS = [['', 'Semua'], ['queued', 'Menunggu'], ['processing', 'Diproses'], ['completed', 'Selesai'], ['failed', 'Gagal']];
+const when = value => value ? new Date(value).toLocaleString('id-ID', { timeZoneName: 'short' }) : '—';
+function jobDuration(job, now) {
+  const start = Date.parse(job.created_at);
+  if (job.status === 'queued') return `menunggu ${formatWait((now - start) / 1000)}`;
+  if (job.status === 'processing') return `berjalan ${formatWait((now - Date.parse(job.started_at || job.created_at)) / 1000)}`;
+  return job.completed_at ? `total ${formatWait((Date.parse(job.completed_at) - start) / 1000)}` : '—';
+}
+export function ClassificationQueue({ api }) {
+  const [summary, setSummary] = useState(null), [jobs, setJobs] = useState([]), [total, setTotal] = useState(0), [offset, setOffset] = useState(0);
+  const [status, setStatus] = useState(''), [loading, setLoading] = useState(true), [error, setError] = useState(''), [updated, setUpdated] = useState(0);
+  const inflight = useRef(false);
+  async function load() {
+    if (inflight.current) return;
+    inflight.current = true;
+    try {
+      const [s, j] = await Promise.all([api('/queue/summary'), api(`/queue/jobs?limit=${PAGE_SIZE}&offset=${offset}${status ? `&status=${status}` : ''}`)]);
+      setSummary(s); setJobs(j.items); setTotal(j.total ?? j.items.length); setUpdated(Date.now()); setError('');
+    } catch (e) { setError(e.message); } finally { inflight.current = false; setLoading(false); }
+  }
+  useEffect(() => { setLoading(true); load(); }, [offset, status]);
+  // Refresh every 10s while visible; never overlaps a request still in flight.
+  useEffect(() => { const t = setInterval(() => { if (!document.hidden) load(); }, 10000); return () => clearInterval(t); }, [offset, status]);
+  const health = queueHealth(summary), now = updated || Date.now();
+  return <VStack gap={5}>
+    <Panel title="Kondisi antrean" description="Job klasifikasi yang dikirim aplikasi ini ke NarasiAhli. Hanya job milik API key integrasi ini yang dihitung; ini bukan statistik global."
+      actions={<ReloadButton onClick={() => { setLoading(true); load(); }} isDisabled={loading} />}>
+      <Notice kind="error">{error}</Notice>
+      <Notice kind="warning">{health?.text}</Notice>
+      {!summary && loading && <HStack gap={2} vAlign="center"><Spinner size="sm" /><Text type="supporting">Memuat antrean…</Text></HStack>}
+      {summary && <VStack gap={4}>
+        <Grid columns={{ minWidth: 150 }} gap={3}>
+          {Object.entries(jobStatusNames).map(([key, label]) => <Card key={key} variant="muted" padding={4}>
+            <VStack gap={1}>
+              <Badge variant={jobStatusVariants[key]} label={label} />
+              <Heading level={2} hasTabularNumbers>{summary.counts?.[key] ?? 0}</Heading>
+            </VStack>
+          </Card>)}
+        </Grid>
+        <MetadataList>
+          <MetadataListItem label="Menunggu terlama">{formatWait(summary.oldest_queued_age_seconds)}</MetadataListItem>
+          <MetadataListItem label="Mencoba ulang (backoff)">{summary.retrying_jobs ?? 0} job</MetadataListItem>
+          <MetadataListItem label="Batas job aktif">{summary.limits?.max_pending ?? '—'} · maksimal {summary.limits?.max_attempts ?? '—'} percobaan</MetadataListItem>
+          <MetadataListItem label="Diperbarui">{updated ? when(updated) : '—'} · otomatis tiap 10 detik</MetadataListItem>
+        </MetadataList>
+      </VStack>}
+    </Panel>
+    <Panel title="Daftar job" description="Setiap submission memakai satu job. Referensi eksternal adalah ID kasus di aplikasi ini.">
+      <TabList label="Filter status job" value={status} onChange={value => { setStatus(value); setOffset(0); }} hasDivider>
+        {JOB_TABS.map(([value, label]) => <Tab key={value || 'all'} value={value} label={label} />)}
+      </TabList>
+      {!loading && !error && !jobs.length && <Empty title="Tidak ada job pada filter ini." />}
+      {jobs.length > 0 && <VStack gap={0}>
+        {jobs.map((job, i) => <div key={job.job_id}>
+          {i > 0 && <Divider />}
+          <HStack gap={3} vAlign="center" paddingBlock={3}>
+            <StackItem size="fill"><VStack gap={1}>
+              <HStack gap={2} vAlign="center" wrap="wrap">
+                <Badge variant={jobStatusVariants[job.status] || 'neutral'} label={jobStatusNames[job.status] || job.status} />
+                <Text weight="medium">Kasus <Mono>{job.external_reference_id ? job.external_reference_id.slice(0, 8) : '—'}</Mono></Text>
+                <Text type="supporting">Job <Mono>{job.job_id.slice(0, 8)}</Mono></Text>
+              </HStack>
+              <Text type="supporting">{when(job.created_at)} · {jobDuration(job, now)} · percobaan {job.attempts ?? 0}</Text>
+              {job.error && <Text type="supporting" color="critical">{job.error.message || job.error.code} <Mono>{job.error.code}</Mono>{job.error.retryable ? ' · dapat dicoba lagi dengan submission baru' : ''}</Text>}
+            </VStack></StackItem>
+          </HStack>
+        </div>)}
+      </VStack>}
+      <PaginationBar offset={offset} total={total} setOffset={setOffset} />
+    </Panel>
+  </VStack>;
 }
 
 /* ───────────────────────────── Review workspace ───────────────────────────── */

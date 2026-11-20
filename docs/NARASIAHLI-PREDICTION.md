@@ -56,3 +56,36 @@ Frontend Docker image after provider labeling: `abuse-reporter:narasi-v1`, same 
 - Existing tenant data retained; other tenants keep their previous transport.
 
 To run review tests in an isolated container, install pytest in that ephemeral test environment and mount `review-service/` as the test workspace. Do not point fixture tests at production SQLite or keys.
+
+## Classification queue (2026-11-20)
+
+In the production topology (BFF → NarasiAhli `/api/v1/external/moderation-review`, one integration key) the review app inside NarasiAhli predicts through the NarasiAhli **job queue** instead of the synchronous `/classify`:
+
+```text
+BFF → moderation-review /v1/classifications
+        └─ POST /api/v1/external/moderation/jobs   (Idempotency-Key + external_reference_id = case id)
+           poll GET /jobs/{id} → GET /jobs/{id}/result
+```
+
+The adapter code lives in the NarasiAhli repository (`backend/app/moderation_review/narasiahli.py`); this repository's standalone `review-service/` is unchanged and still calls `/classify`. Behaviour: wait up to 200s (below the BFF's 240s timeout) and cancel the job on timeout; a `failed`/`cancelled` job is an error, never a safe result; `MODERATION_REVIEW_NARASIAHLI_USE_QUEUE=false` returns to `/classify` without a redeploy. See NarasiAhli `docs/EXTERNAL_MODERATION_QUEUE_API.md`.
+
+### Monitoring page
+
+Reviewers and admins see **Review → Antrean klasifikasi**: job counts per status (menunggu, diproses, selesai, gagal, dibatalkan), the age of the oldest waiting job, jobs in retry backoff, and a filterable job list (case reference, attempts, duration, error code). It refreshes every 10 seconds while the tab is visible and warns when the oldest job waited over 5 minutes or active jobs reach 80% of the queue limit.
+
+```text
+Browser → BFF GET /api/queue/summary | /api/queue/jobs      (reviewer role, session + origin checks)
+        → NarasiAhli GET /jobs/summary | /jobs               (the server-side integration key)
+```
+
+- **Read-only.** No cancel/retry here; the BFF exposes only these two GET routes.
+- **Scope = the integration key.** Counts include only jobs created with that key (which includes this app's predictions). It is not a global queue or worker-health view.
+- **Whitelisted.** The BFF forwards only job id, status, case reference, attempts, timestamps and `error.code/message/retryable` — never submitted text, results or callback URLs; the key never reaches the browser.
+
+### Deploy order
+
+1. NarasiAhli: apply migration `043_moderation_jobs.sql`, deploy `moderation-worker`, `MODERATION_ENABLED=true`, queue not disabled. The key already needs `moderation:read` + `moderation:classify`.
+2. NarasiAhli backend/review app (queue adapter), then this frontend (monitoring page).
+3. Rollback: set `MODERATION_REVIEW_NARASIAHLI_USE_QUEUE=false` (or redeploy the previous image). Jobs already accepted are unaffected.
+
+The review app still serializes inference per deployment (one in flight, 6/min per tenant) before calling NarasiAhli, so the queue adds retries and visibility but not throughput for this app.

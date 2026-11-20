@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { db, opaque, digest, checkPassword, hashPassword, session, publicUser, audit } from '../../../lib/store.mjs';
-import { submissionSchema, decisionSchema, hasRole, routePolicy } from '../../../lib/domain.mjs';
+import { submissionSchema, decisionSchema, hasRole, routePolicy, publicQueueSummary, publicQueueJob } from '../../../lib/domain.mjs';
 import { upstream, moderationConfig, UpstreamError } from '../../../lib/upstream.mjs';
 
 export const runtime = 'nodejs';
@@ -98,6 +98,18 @@ async function handle(req, context) {
     const role = routePolicy(path, method);
     if (!role) fail(404, 'Route tidak tersedia.');
     if (!hasRole(user, role)) fail(403, 'Role Anda tidak memiliki akses.');
+    if (path === '/queue/summary' || path === '/queue/jobs') {
+      // Read-only view of the integration key's classification jobs, straight from the NarasiAhli API
+      // with the same server-side key (like /api-history). Only whitelisted fields reach the browser.
+      if (path === '/queue/summary') return json(publicQueueSummary(await upstream(user, '/jobs/summary', { moderation: true })));
+      const q = new URL(req.url).searchParams;
+      const limit = z.coerce.number().int().min(1).max(100).parse(q.get('limit') || 25);
+      const offset = z.coerce.number().int().min(0).max(1000000).parse(q.get('offset') || 0);
+      let query = `?limit=${limit}&offset=${offset}`;
+      if (q.get('status')) query += '&status=' + z.enum(['queued', 'processing', 'completed', 'failed', 'cancelled']).parse(q.get('status'));
+      const data = await upstream(user, '/jobs' + query, { moderation: true });
+      return json({ items: (data.items || []).map(publicQueueJob), total: data.total ?? 0, limit, offset });
+    }
     const reviewer = role !== 'operator';
     let payload, idem, localId;
     if (path === '/classifications' && method === 'GET') fail(404, 'Service tidak menyediakan riwayat global.');

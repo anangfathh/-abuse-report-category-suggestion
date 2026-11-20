@@ -20,10 +20,12 @@ test('real BFF: login, roles, direct final, review/correction, retries and error
   const upstream=createServer(async(req,res)=>{
     let raw='';for await(const chunk of req)raw+=chunk;let body=raw?JSON.parse(raw):null;
     const url=new URL(req.url,'http://fixture'),key=req.headers['x-api-key'],tenant=key?.startsWith('b-')?'b':'a';
-    url.pathname=url.pathname.replace(/^\/api\/v1\/external\/moderation-review/, '').replace(/^\/api\/v1\/external\/moderation(?=\/history)/, '');
+    url.pathname=url.pathname.replace(/^\/api\/v1\/external\/moderation-review/, '').replace(/^\/api\/v1\/external\/moderation(?=\/(?:history|jobs))/, '');
     calls.push({path:url.pathname,method:req.method,tenant,body,key});
     const send=(status,data,headers={})=>{res.writeHead(status,{'content-type':'application/json',...headers});res.end(JSON.stringify(data));};
     if(url.pathname==='/history')return send(200,{items:[{id:'fixture-request',created_at:'2026-11-17T00:00:00Z',input:{content:'Contoh riwayat API'},result:{status:'no_violation',explanation:'Tidak ditemukan pelanggaran.',findings:[]}}],total:1});
+    if(url.pathname==='/jobs/summary')return send(200,{counts:{queued:2,processing:1,completed:9,failed:1,cancelled:0},retrying_jobs:1,oldest_queued_age_seconds:42,limits:{max_pending:50}});
+    if(url.pathname==='/jobs')return send(200,{items:[{job_id:'job-fixture-1',status:url.searchParams.get('status')||'queued',external_reference_id:'case-1',attempts:1,input:{content:'secret text'},callback:{url:'https://x.example/hook'},result:{k:'v'},error:null}],total:1,limit:Number(url.searchParams.get('limit')),offset:Number(url.searchParams.get('offset'))});
     if(url.pathname==='/v1/taxonomy')return send(200,taxonomy);
     if(url.pathname==='/v1/classifications'&&req.method==='POST'){
       const idem=tenant+':'+req.headers['idempotency-key'];
@@ -92,6 +94,22 @@ test('real BFF: login, roles, direct final, review/correction, retries and error
   await t.test('API key history uses the server-side integration key',async()=>{
     const r=await request('/api-history'); assert.equal(r.status,200); assert.equal(r.data.items[0].input.content,'Contoh riwayat API');
     assert.equal(JSON.stringify(r.data).includes('a-client-fixture'),false);
+  });
+  await t.test('classification queue view is reviewer-only, read-only and uses the server-side integration key and exposes only metadata',async()=>{
+    assert.equal((await request('/queue/summary',{actor:'operator'})).status,403);
+    assert.equal((await request('/queue/jobs',{actor:'operator'})).status,403);
+    const summary=await request('/queue/summary',{actor:'reviewer'});
+    assert.equal(summary.status,200);assert.equal(summary.data.counts.queued,2);
+    const jobs=await request('/queue/jobs?status=failed&limit=10&offset=5',{actor:'reviewer'});
+    assert.equal(jobs.status,200);assert.equal(jobs.data.items[0].status,'failed');assert.equal(jobs.data.offset,5);
+    assert.equal((await request('/queue/jobs?status=bogus',{actor:'reviewer'})).status,422);
+    assert.equal((await request('/queue/jobs?limit=1000',{actor:'reviewer'})).status,422);
+    assert.equal((await request('/queue/jobs',{actor:'reviewer',method:'POST',body:{}})).status,404);
+    assert.equal(jobs.data.items[0].input,undefined);assert.equal(jobs.data.items[0].callback,undefined);assert.equal(jobs.data.items[0].result,undefined);
+    const queueCalls=calls.filter(c=>c.path==='/jobs/summary'||c.path==='/jobs');
+    assert.ok(queueCalls.length>=2&&queueCalls.every(c=>c.method==='GET'&&c.key==='a-client-fixture'));
+    assert.equal(calls.some(c=>c.path.startsWith('/v1/queue')),false);
+    assert.equal(JSON.stringify(summary.data).includes('fixture'),false);
   });
   await t.test('direct finals, unknown response idempotency and ownership isolation',async()=>{
     for(const content of ['safe','violation','exact','similar','legacy']){const r=await submit(content);assert.equal(r.status,200);assert.equal(r.data.status,'completed');if(content==='exact')assert.equal(r.data.prediction,null);}

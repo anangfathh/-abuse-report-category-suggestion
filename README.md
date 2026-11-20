@@ -4,7 +4,7 @@ Aplikasi web **mandiri** untuk PRD pada `docs/PRD-HITL-Kategorisasi-X.md`. Front
 
 Deployment Docker: **https://abuse-reporter.qudo.id**. Detail routing/TLS/operasional ada di [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Akses memerlukan akun dari admin; credential tidak disertakan di repository.
 
-**Sumber prediksi terbaru:** sesuai klarifikasi owner, prediksi baru memakai **API NarasiAhli lama** `/api/v1/external/moderation/classify`. Lapisan review tetap menangani antrean/knowledge. Detail alur, key, konfigurasi dan bukti panggilan ada di [docs/NARASIAHLI-PREDICTION.md](docs/NARASIAHLI-PREDICTION.md). Klarifikasi ini menggantikan batas “tidak memanggil API NarasiAhli” pada handoff awal; data/auth aplikasi tetap terpisah.
+**Sumber prediksi terbaru:** sesuai klarifikasi owner, prediksi baru memakai **API NarasiAhli**; pada topologi produksi (review app di NarasiAhli) lewat antrean job `POST /api/v1/external/moderation/jobs` + polling, halaman *Antrean klasifikasi* (reviewer/admin) memantau antrean itu secara read-only. Lapisan review tetap menangani antrean/knowledge. Detail alur, key, konfigurasi dan bukti panggilan ada di [docs/NARASIAHLI-PREDICTION.md](docs/NARASIAHLI-PREDICTION.md). Klarifikasi ini menggantikan batas “tidak memanggil API NarasiAhli” pada handoff awal; data/auth aplikasi tetap terpisah.
 
 ## Antarmuka (Astryx)
 
@@ -18,6 +18,7 @@ UI memakai [Astryx](https://astryx.atmeta.com) (`@astryxdesign/core` + `@astryxd
 - Antrean pending/selesai, pagination, workspace manusia, validasi rule/reuse/bukti, revision optimistic, koreksi dan audit service. Prediksi tidak otomatis menjadi keputusan manusia.
 - Knowledge, provenance, expiry/revoked/index-error terpisah; revoke/reindex admin-only di BFF. Tidak ada bank knowledge atau antrean review paralel.
 - Pengguna/role untuk lingkungan internal. Penggantian role/nonaktif menghapus session target. Tidak ada self-demotion melalui halaman admin.
+- Halaman **Antrean klasifikasi** (reviewer/admin): jumlah job per status, job tertua yang menunggu, job yang sedang mencoba ulang, dan daftar job; segar tiap 10 detik. Read-only, cakupan = API key integrasi ini, langsung dari API NarasiAhli.
 - Polling 30 detik antrean dan 15 detik detail pending/processing; pause saat tab hidden, tanpa overlapping polling, backoff error, Retry-After 429.
 
 ## Menjalankan

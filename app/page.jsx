@@ -20,9 +20,9 @@ import { Text } from '@astryxdesign/core/Text';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { VStack } from '@astryxdesign/core/VStack';
-import { BookMarked, Brain, History as HistoryIcon, Inbox, LogOut, ScanSearch, Send, Users as UsersIcon } from 'lucide-react';
+import { Activity, BookMarked, Brain, History as HistoryIcon, Inbox, LogOut, ScanSearch, Send, Users as UsersIcon } from 'lucide-react';
 import { Mono, Notice, PageHeader, Panel, Result, ThemeToggle } from './ui.jsx';
-import { ApiHistory, History, KnowledgeList, Login, ReviewQueue, ReviewWorkspace, Taxonomy, Users } from './views.jsx';
+import { ApiHistory, ClassificationQueue, History, KnowledgeList, Login, ReviewQueue, ReviewWorkspace, Taxonomy, Users } from './views.jsx';
 
 const blank = { platform: 'x', content: '', context: '', context_key: '', external_reference_id: '' };
 const headings = {
@@ -30,6 +30,7 @@ const headings = {
   taxonomy: ['PETA KEBIJAKAN', 'Taxonomy kebijakan X', 'Jelajahi kategori, rincian, dan sumber kebijakan yang digunakan untuk klasifikasi.'],
   history: ['AKTIVITAS ANDA', 'Submission saya', 'Referensi yang dikirim melalui akun ini, bukan riwayat global service.'],
   reviews: ['HUMAN IN THE LOOP', 'Antrean review', 'Tinjau kasus yang membutuhkan konteks dan penilaian manusia.'],
+  queue: ['PEMANTAUAN', 'Antrean klasifikasi', 'Pantau job klasifikasi yang menunggu, diproses, selesai, atau gagal di NarasiAhli.'],
   workspace: ['WORKSPACE REVIEWER', 'Keputusan yang bisa ditelusuri', 'Periksa bukti, konteks, dan kebijakan sebelum memutuskan.'],
   knowledge: ['PENGETAHUAN TERVERIFIKASI', 'Knowledge manusia', 'Keputusan reviewer, provenance, dan masa berlaku reuse.'],
   users: ['ADMINISTRASI', 'Pengguna & peran', 'Akses manusia dibatasi organisasi dan role pada server.'],
@@ -155,6 +156,7 @@ export default function App() {
     </SideNavSection>
     {canReview && <SideNavSection title="Review">
       {navItem('reviews', 'Antrean review', Inbox)}
+      {navItem('queue', 'Antrean klasifikasi', Activity)}
       {navItem('knowledge', 'Knowledge', Brain)}
     </SideNavSection>}
     {isAdmin && <SideNavSection title="Administrasi">
@@ -240,6 +242,7 @@ export default function App() {
           <History rows={rows} total={total} reload={() => loadList()} onOpen={viewSubmission} api={api} />
         </>}
         {page === 'reviews' && <ReviewQueue rows={rows} total={total} offset={offset} setOffset={setOffset} queue={queue} setQueue={setQueue} reload={() => loadList()} onOpen={openReview} />}
+        {page === 'queue' && canReview && <ClassificationQueue api={api} />}
         {page === 'workspace' && review && <ReviewWorkspace key={review.id} review={review} taxonomy={taxonomy} api={api} setReview={setReview} setError={setError} attribution={attribution} limited={remaining > 0} />}
         {page === 'knowledge' && <KnowledgeList rows={rows} total={total} offset={offset} setOffset={setOffset} reload={() => loadList()} admin={isAdmin} api={api} setError={setError} />}
         {page === 'users' && <Users rows={rows} user={user} api={api} refresh={() => loadList()} setError={setError} />}
