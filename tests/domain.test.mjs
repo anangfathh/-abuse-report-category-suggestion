@@ -71,3 +71,14 @@ test('queue payloads are whitelisted before reaching the browser',() => {
   assert.equal(summary.secret,undefined);assert.equal(summary.callbacks,undefined);assert.deepEqual(Object.keys(summary.limits),['max_pending','max_attempts','retention_days']);
   assert.deepEqual(publicQueueSummary(null).counts,{ queued: 0, processing: 0, completed: 0, failed: 0, cancelled: 0 });
 });
+
+test('report menu keeps exact labels separate from translated policy and unmapped rules', async () => {
+  const { reportMenuGroups } = await import('../lib/domain.mjs');
+  const tax={categories:[{label:'Pelecehan',source_url:'https://help.x.com/rules',subcategories:[{id:'abuse.targeted',label:'Pelecehan terarah'},{id:'civic.other',label:'Kebijakan lain'}]}], report_menu:{categories:[{id:'hate_abuse_harassment',label:'Hate, Abuse, or Harassment',verification:'user_screenshot_verified',rule_ids:['abuse.targeted']},{id:'adult',label:'Adult Sexual Content',verification:'client_documented_not_live_verified',rule_ids:[]}]}};
+  const before=JSON.stringify(tax), groups=reportMenuGroups(tax);
+  assert.equal(groups.verified[0].label,'Hate, Abuse, or Harassment');
+  assert.equal(groups.verified[0].subcategories[0].policy_category,'Pelecehan');
+  assert.equal(groups.documented.length,1);
+  assert.deepEqual(groups.unmapped.map(r=>r.id),['civic.other']);
+  assert.equal(JSON.stringify(tax),before);
+});

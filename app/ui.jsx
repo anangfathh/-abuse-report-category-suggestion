@@ -130,6 +130,7 @@ export function Findings({ value }) {
         <VStack gap={2}>
           <Text type="label" color="accent">{f.category || f.category_id}</Text>
           <Heading level={4}>{f.subcategory || f.rule_id}</Heading>
+          <Text type="supporting">Rincian kebijakan, bukan nama submenu X.</Text>
           {f.detail && <Text as="p" color="secondary">{f.detail}</Text>}
           {(f.evidence || []).map((q, j) => <Blockquote key={j}><span className="prewrap">{q}</span></Blockquote>)}
           {f.rationale && <Text as="p" type="supporting">{f.rationale}</Text>}

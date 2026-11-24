@@ -28,7 +28,7 @@ import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { VStack } from '@astryxdesign/core/VStack';
 import { Braces, Hourglass, LogIn, RefreshCw } from 'lucide-react';
-import { stateOf, policyLink, knowledgeState, filterTaxonomy, jobStatusNames, jobStatusVariants, formatWait, queueHealth } from '../lib/domain.mjs';
+import { stateOf, policyLink, knowledgeState, filterTaxonomy, reportMenuGroups, jobStatusNames, jobStatusVariants, formatWait, queueHealth } from '../lib/domain.mjs';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { DisclosureCard, Empty, Findings, JsonBlock, JsonDisclosure, ListHead, Mono, Notice, PAGE_SIZE, Panel, PaginationBar, ReloadButton, Result, StateBadge, ThemeToggle, date } from './ui.jsx';
 
@@ -79,43 +79,32 @@ export function Login({ onLogin }) {
 /* ───────────────────────────── Taxonomy ───────────────────────────── */
 export function Taxonomy({ taxonomy, reload }) {
   const [query, setQuery] = useState('');
-  const categories = taxonomy?.categories || [];
-  const filtered = filterTaxonomy(categories, query);
+  const { verified, documented, unmapped } = reportMenuGroups(taxonomy);
   const searching = Boolean(query.trim());
-  return <Panel title="Referensi kategori"
-    description={taxonomy ? `${categories.length} kategori · ${categories.reduce((sum, c) => sum + c.subcategories.length, 0)} subkategori` : 'Taxonomy belum tersedia'}
+  const renderGroups = groups => filterTaxonomy(groups, query).map(category => <DisclosureCard
+    key={category.id + (searching ? ':search' : '')} defaultIsOpen={searching}
+    title={category.label} meta={`${category.subcategories.length} rincian kebijakan terkait`}>
+    <Text type="supporting">{category.verification === 'user_screenshot_verified' ? 'Nama persis dari screenshot menu Report X (English).' : 'Label tercantum di dokumentasi client independen; belum diverifikasi di screenshot/alur live.'}</Text>
+    <Text as="p">Rincian berikut adalah pemetaan kebijakan, bukan nama submenu Report X.</Text>
+    <Grid columns={{ minWidth: 260 }} gap={3}>{category.subcategories.map(rule => <Card key={rule.id} variant="muted" padding={4}><VStack gap={2}>
+      <Heading level={4}>{rule.label}</Heading><Text as="p" color="secondary">{rule.detail}</Text>
+      <Text type="supporting">{rule.policy_category} · <Mono>{rule.id}</Mono></Text>
+      {policyLink(rule.policy_source_url) && <Link href={policyLink(rule.policy_source_url)} isExternalLink>Sumber kebijakan X</Link>}
+    </VStack></Card>)}</Grid>
+  </DisclosureCard>);
+  return <Panel title="Kategori menu Report X"
+    description={taxonomy ? `${verified.length} nama terverifikasi · ${documented.length} label referensi tambahan` : 'Taxonomy belum tersedia'}
     actions={<ReloadButton onClick={() => reload()} />}>
     {taxonomy ? <>
-      <label>Platform <select value={taxonomy.platform} onChange={() => {}}><option value="x">X</option></select></label>
-      <label>Bahasa taxonomy <select value={taxonomy.language || 'id'} onChange={e => reload(e.target.value)}><option value="id">Bahasa Indonesia</option><option value="en">English</option></select></label>
-      <MetadataList orientation="horizontal">
-        <MetadataListItem label="Versi">{taxonomy.version}</MetadataListItem>
-        <MetadataListItem label="Ditinjau">{taxonomy.researched_at || '—'}</MetadataListItem>
-      </MetadataList>
-      <Notice kind="info">Peta kebijakan untuk membantu peninjauan, bukan keputusan resmi atau salinan lengkap menu pelaporan X.</Notice>
-      <TextInput label="Cari kategori atau subkategori" type="search" startIcon="search" hasClear placeholder="Contoh: ancaman, identitas, atau ID rule" value={query} onChange={setQuery} />
-      <VStack gap={3}>
-        {filtered.map(category => {
-          const source = policyLink(category.source_url);
-          return <DisclosureCard key={category.id + (searching ? ':search' : '')} defaultIsOpen={searching}
-            title={category.label} meta={`${category.id} · ${category.subcategories.length} subkategori`}>
-            {category.policy_title && <Text type="supporting">{category.policy_title}{category.source_updated ? ` · diperbarui ${category.source_updated}` : ''}</Text>}
-            {category.source_topics?.length > 0 && <Text as="p"><Text weight="semibold">Topik dalam sumber X:</Text> {category.source_topics.map(t => t.label).join(' · ')}</Text>}
-            {category.exceptions && <Text as="p"><Text weight="semibold">Konteks & pengecualian:</Text> {category.exceptions}</Text>}
-            {source && <HStack><Link href={source} isExternalLink>Baca sumber kebijakan</Link></HStack>}
-            <Grid columns={{ minWidth: 260 }} gap={3}>
-              {category.subcategories.map(rule => <Card key={rule.id} variant="muted" padding={4}>
-                <VStack gap={2}>
-                  <Heading level={4}>{rule.label}</Heading>
-                  <Text as="p" color="secondary">{rule.detail}</Text>
-                  <Text type="supporting"><Mono>{rule.id}</Mono> · Bukti: {rule.evidence_requirement || '—'}</Text>
-                </VStack>
-              </Card>)}
-            </Grid>
-          </DisclosureCard>;
-        })}
-      </VStack>
-      {!filtered.length && <Empty title="Tidak ada kategori yang cocok dengan pencarian." />}
+      <label>Platform <select value="x" onChange={() => {}}><option value="x">X</option></select></label>
+      <label>Bahasa rincian kebijakan <select value={taxonomy.language || 'id'} onChange={e => reload(e.target.value)}><option value="id">Bahasa Indonesia</option><option value="en">English</option></select></label>
+      <MetadataList orientation="horizontal"><MetadataListItem label="Versi">{taxonomy.report_menu?.version || taxonomy.version}</MetadataListItem><MetadataListItem label="Ditinjau">{taxonomy.report_menu?.checked_at || taxonomy.researched_at}</MetadataListItem></MetadataList>
+      <Notice kind="info">Nama menu dipertahankan persis dalam English sesuai bukti. Sembilan nama terverifikasi dari screenshot; bagian menu yang terpotong dan seluruh submenu belum terverifikasi. Ini bukan keputusan resmi X.</Notice>
+      <TextInput label="Cari kategori atau rincian kebijakan" type="search" startIcon="search" hasClear placeholder="Contoh: Spam, Harassment, atau ID rule" value={query} onChange={setQuery} />
+      <VStack gap={3}>{renderGroups(verified)}</VStack>
+      {documented.length > 0 && <DisclosureCard title="Label tambahan — belum terverifikasi di screenshot" meta="Referensi client independen, bukan konfirmasi UI live"><VStack gap={3}>{renderGroups(documented)}</VStack></DisclosureCard>}
+      {unmapped.length > 0 && <DisclosureCard title="Pemeriksaan kebijakan lain — belum ada padanan menu terverifikasi" meta="Tidak ditampilkan sebagai nama menu Report X"><VStack gap={3}>{unmapped.filter(r => !query.trim() || [r.label,r.id,r.detail].some(x => String(x).toLowerCase().includes(query.toLowerCase()))).map(rule => <Card key={rule.id} padding={4}><Heading level={4}>{rule.label}</Heading><Text as="p">{rule.detail}</Text><Text type="supporting"><Mono>{rule.id}</Mono> · {rule.policy_category}</Text></Card>)}</VStack></DisclosureCard>}
+      {!verified.length && <Notice kind="warning">Belum ada label menu terverifikasi dari service. Muat ulang setelah pembaruan.</Notice>}
     </> : <Empty title="Taxonomy belum berhasil dimuat." description="Gunakan tombol muat ulang untuk mencoba lagi." />}
   </Panel>;
 }
@@ -312,7 +301,8 @@ export function ReviewWorkspace({ review, taxonomy, api, setReview, setError, at
     } finally { setBusy(false); }
   }
   const allRules = taxonomy?.categories.flatMap(c => c.subcategories.map(r => ({ ...r, category: c.label }))) || [];
-  const ruleOptions = (taxonomy?.categories || []).map(c => ({ type: 'section', title: c.label, options: c.subcategories.map(r => ({ value: r.id, label: r.label })) }));
+  const reportGroups = reportMenuGroups(taxonomy);
+  const ruleOptions = [...reportGroups.verified, ...reportGroups.documented, ...(reportGroups.unmapped.length ? [{label:'Kebijakan lain — bukan nama menu X',subcategories:reportGroups.unmapped}] : [])].map(c => ({ type: 'section', title: c.label, options: c.subcategories.map(r => ({ value: r.id, label: r.label })) }));
   const external = basis !== 'text_only' || allRules.some(r => rules.includes(r.id) && r.evidence_requirement !== 'text') || review.classification?.prediction?.findings?.some(f => f.evidence_requirement !== 'text');
   const touch = fn => value => { fn(value); setChecked(false); };
   const completed = review.status === 'completed';

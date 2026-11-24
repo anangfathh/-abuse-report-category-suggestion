@@ -225,9 +225,9 @@ export default function App() {
             <Text as="p" className="prewrap">{previewInput.content}</Text>
             {previewInput.context && <Text as="p" color="secondary" className="prewrap">{previewInput.context}</Text>}
           </Panel>}
-          <Panel title="Kategori dimuat dari taxonomy service." description="Snapshot kebijakan, bukan replika lengkap menu Report X atau keputusan resmi platform.">
+          <Panel title="Kategori dimuat dari taxonomy service." description="Nama menu Report X yang terverifikasi dari screenshot; rincian kebijakan ditampilkan terpisah.">
             {taxonomy
-              ? <HStack gap={2} wrap="wrap">{taxonomy.categories.map(c => <Badge key={c.id} variant="neutral" label={c.label} />)}</HStack>
+              ? <HStack gap={2} wrap="wrap">{(taxonomy.report_menu?.categories || []).filter(c => c.verification === 'user_screenshot_verified').map(c => <Badge key={c.id} variant="neutral" label={c.label} />)}</HStack>
               : <HStack><Button variant="secondary" size="sm" label="Muat ulang taxonomy" onClick={() => reloadTaxonomy()} /></HStack>}
           </Panel>
           <AlertDialog isOpen={confirmNew} onOpenChange={setConfirmNew} title="Mulai submission baru?"

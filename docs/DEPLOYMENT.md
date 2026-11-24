@@ -7,7 +7,7 @@ Subsequent owner correction: new base predictions must use the original NarasiAh
 ## Runtime layout
 
 - Docker Compose project/container `abuse-reporter`; non-root Node user.
-- Persistent Docker volume `abuse-reporter-data` stores **application** SQLite user/session/audit/submission ledger. No moderation service PVC/database access.
+- Users, sessions, audit and submissions are stored in application PostgreSQL (`APP_DATABASE_URL`, schema `abuse_reporter`). The named volume is retained for existing files; it is not the current database source of truth.
 - App port 3040 binds only to the server-private interface for ingress access, not to every interface. Compose defaults loopback for other installations; explicitly configure BIND_ADDRESS for an existing ingress deployment.
 - Existing Kubernetes nginx ingress routes this domain to the Docker origin through a selectorless Service/EndpointSlice in new namespace `abuse-reporter`. No NarasiAhli ingress/config was replaced.
 - Dedicated cert-manager certificate `abuse-reporter-tls` with Let's Encrypt issuer and automatic renewal. HTTPS redirect enabled by ingress TLS; read/send proxy timeout 300 seconds, body limit 128 KiB (BFF limit 96 KiB).
@@ -17,18 +17,18 @@ Subsequent owner correction: new base predictions must use the original NarasiAh
 
 Deployment environment is stored **outside** this repository under `/root/.config/abuse-reporter/`, directory mode 0700 and credential files mode 0600:
 
-- `production.env`: origin, secure cookies, application DB path and tenant API key mapping.
+- `production.env`: origin, secure cookies, application PostgreSQL URL and server-side moderation API key.
 - `compose.env`: image, private bind address and environment file path.
 - `admin-login.json`: generated initial application admin login, delivered privately to owner. Not committed, not part of image/browser.
 
-Existing service keys were used server-side for the configured tenant. Initial admin provisioned into application SQLite, not into the moderation service. Do not copy deployment credential files into the repository or container build context.
+Existing service keys were used server-side for the configured tenant. Initial admin is an application account, not a moderation-service credential. Do not copy deployment credential files into the repository or container build context.
 
 ## Operator commands
 
 Run from repository root; deploy credentials/compose configuration first.
 
 ```sh
-docker build -t abuse-reporter:narasi-v1 .
+docker build -t abuse-reporter:x-menu-20261124 .
 docker compose --project-name abuse-reporter \
   --env-file /root/.config/abuse-reporter/compose.env \
   -f deploy/compose.yaml up -d
@@ -39,7 +39,7 @@ curl -f https://abuse-reporter.qudo.id/api/health
 
 Render `deploy/ingress.template.yaml` with the private origin IP replacing `__ORIGIN_IP__`, inspect the rendered file, then `kubectl apply -f` that file. The existing cluster must already have nginx ingress and ClusterIssuer `letsencrypt-prod`. Do not apply placeholder IP directly. DNS must point to the ingress's public address; on this server the domain already resolved correctly, so no DNS record change was needed.
 
-On updates build a new immutable image tag and change APP_IMAGE in server-only compose.env. Preserve the named volume. For rollback restore prior APP_IMAGE and run compose up again. Do not run `down -v` unless application data removal is explicitly intended. Back up SQLite consistently as described in README; do not expose DB backups via web/static paths.
+On updates build a new immutable image tag and change APP_IMAGE in server-only compose.env. Preserve the named volume. For rollback restore prior APP_IMAGE and run compose up again. Do not run `down -v` unless application data removal is explicitly intended. Back up PostgreSQL before data changes; do not expose DB backups via web/static paths.
 
 ## Deployment verification
 
@@ -52,3 +52,23 @@ On updates build a new immutable image tag and change APP_IMAGE in server-only c
 - Existing NarasiAhli health and bridge iptables setting checked after Docker startup; unchanged/healthy.
 
 No production classification, reviewer decision/correction, revoke or reindex was performed as deployment smoke. Full live inference/human-review mutation acceptance still needs dedicated test content/tenant and a human reviewer; earlier 13-test E2E suite uses isolated fixtures.
+
+## Report-menu label correction (24 November 2026)
+
+The taxonomy view now separates nine screenshot-verified English Report names
+from two independently documented but not live-verified labels, and from internal
+policy checks without a verified menu counterpart. Policy details are not
+advertised as verbatim X submenu names. Labels stay English when policy-detail
+language changes. The source catalogue is versioned JSON served by NarasiAhli;
+PostgreSQL stores the classification/review result snapshots.
+
+The backend/review label migration updated presentation metadata only. Source
+rule IDs, evidence, assessments and human decisions remain unchanged. Full and
+row-level private backups were made before updating stored snapshots.
+
+The VM's DHCP interface changed from its old private address after reboot. This
+deployment now publishes the Docker origin on the private Docker bridge
+`172.17.0.1:3040`; the ingress EndpointSlice uses that same bridge address.
+`NARASIAHLI_IP=host-gateway` keeps the internal HTTPS hostname mapping independent
+of the VM's DHCP address. Neither port 3040 nor service credentials are published
+on all host interfaces. Preserve these values in server-only `compose.env`.
