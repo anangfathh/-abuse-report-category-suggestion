@@ -82,3 +82,12 @@ test('report menu keeps exact labels separate from translated policy and unmappe
   assert.deepEqual(groups.unmapped.map(r=>r.id),['civic.other']);
   assert.equal(JSON.stringify(tax),before);
 });
+
+test('documented submenus are preserved separately, never fabricated for another category', async () => {
+  const { reportMenuGroups } = await import('../lib/domain.mjs');
+  const label='Report content under the US Take It Down Act';
+  const groups=reportMenuGroups({categories:[],report_menu:{categories:[{id:'private',label:'Private or Non-Consensual Content',verification:'user_screenshot_verified',rule_ids:[],submenus:[{label,auto_select:false}]},{id:'spam',label:'Spam',verification:'user_screenshot_verified',rule_ids:[]}]}});
+  assert.equal(groups.verified[0].submenus[0].label,label);
+  assert.equal(groups.verified[0].submenus[0].auto_select,false);
+  assert.equal(groups.verified[1].submenus,undefined);
+});

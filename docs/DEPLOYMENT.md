@@ -28,7 +28,7 @@ Existing service keys were used server-side for the configured tenant. Initial a
 Run from repository root; deploy credentials/compose configuration first.
 
 ```sh
-docker build -t abuse-reporter:x-menu-20261124 .
+docker build -t abuse-reporter:x-submenu-20261124 .
 docker compose --project-name abuse-reporter \
   --env-file /root/.config/abuse-reporter/compose.env \
   -f deploy/compose.yaml up -d
@@ -72,3 +72,12 @@ deployment now publishes the Docker origin on the private Docker bridge
 `NARASIAHLI_IP=host-gateway` keeps the internal HTTPS hostname mapping independent
 of the VM's DHCP address. Neither port 3040 nor service credentials are published
 on all host interfaces. Preserve these values in server-only `compose.env`.
+
+### Officially documented submenu references
+
+The private/non-consensual branch includes two verbatim labels sourced from X's
+official intimate-media and US Take It Down Act instructions. They are marked
+`official_help_documented`, not live-UI verified. The US route is reference-only
+and never inferred from a classifier result. Other branches explicitly remain
+unverified; the full authenticated tree needs additional screenshots. Original
+policy detail names remain available separately, including on stored results.

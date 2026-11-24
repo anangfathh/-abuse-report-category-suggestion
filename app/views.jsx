@@ -85,6 +85,15 @@ export function Taxonomy({ taxonomy, reload }) {
     key={category.id + (searching ? ':search' : '')} defaultIsOpen={searching}
     title={category.label} meta={`${category.subcategories.length} rincian kebijakan terkait`}>
     <Text type="supporting">{category.verification === 'user_screenshot_verified' ? 'Nama persis dari screenshot menu Report X (English).' : 'Label tercantum di dokumentasi client independen; belum diverifikasi di screenshot/alur live.'}</Text>
+    {category.submenus?.length ? <VStack gap={3}>
+      <Heading level={4}>Submenu terdokumentasi resmi X</Heading>
+      {category.submenus.map(submenu => <Card key={submenu.id} padding={4}><VStack gap={2}>
+        <Text as="p" weight="semibold">{submenu.label}</Text>
+        <Text type="supporting">{submenu.note}</Text>
+        {policyLink(submenu.source_url) && <Link href={policyLink(submenu.source_url)} isExternalLink>Label dalam dokumentasi resmi X</Link>}
+      </VStack></Card>)}
+      <Text type="supporting">Belum mencakup seluruh pertanyaan berikutnya; dokumentasi resmi bukan pemeriksaan alur login pada akun ini.</Text>
+    </VStack> : <Text type="supporting">Nama submenu untuk cabang ini belum terverifikasi.</Text>}
     <Text as="p">Rincian berikut adalah pemetaan kebijakan, bukan nama submenu Report X.</Text>
     <Grid columns={{ minWidth: 260 }} gap={3}>{category.subcategories.map(rule => <Card key={rule.id} variant="muted" padding={4}><VStack gap={2}>
       <Heading level={4}>{rule.label}</Heading><Text as="p" color="secondary">{rule.detail}</Text>
