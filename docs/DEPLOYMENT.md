@@ -81,3 +81,12 @@ official intimate-media and US Take It Down Act instructions. They are marked
 and never inferred from a classifier result. Other branches explicitly remain
 unverified; the full authenticated tree needs additional screenshots. Original
 policy detail names remain available separately, including on stored results.
+
+### Screenshot submenu catalogue v3 (2026-11-24)
+
+The live catalogue distinguishes screenshot-evidenced choices (Private Content,
+Impersonation), six user-reported no-submenu branches, and unverified branches.
+No-submenu observations are scoped to the tested account/flow. Identity-dependent
+choices are reference-only: the model cannot decide who the reporter represents.
+The US Take It Down legal route is separate from the screenshot choice list.
+Neither policy detail names nor downstream questions are invented.

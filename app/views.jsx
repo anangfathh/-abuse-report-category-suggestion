@@ -86,14 +86,15 @@ export function Taxonomy({ taxonomy, reload }) {
     title={category.label} meta={`${category.subcategories.length} rincian kebijakan terkait`}>
     <Text type="supporting">{category.verification === 'user_screenshot_verified' ? 'Nama persis dari screenshot menu Report X (English).' : 'Label tercantum di dokumentasi client independen; belum diverifikasi di screenshot/alur live.'}</Text>
     {category.submenus?.length ? <VStack gap={3}>
-      <Heading level={4}>Submenu terdokumentasi resmi X</Heading>
+      <Heading level={4}>Submenu sesuai screenshot X</Heading>
       {category.submenus.map(submenu => <Card key={submenu.id} padding={4}><VStack gap={2}>
         <Text as="p" weight="semibold">{submenu.label}</Text>
         <Text type="supporting">{submenu.note}</Text>
         {policyLink(submenu.source_url) && <Link href={policyLink(submenu.source_url)} isExternalLink>Label dalam dokumentasi resmi X</Link>}
       </VStack></Card>)}
-      <Text type="supporting">Belum mencakup seluruh pertanyaan berikutnya; dokumentasi resmi bukan pemeriksaan alur login pada akun ini.</Text>
-    </VStack> : <Text type="supporting">Nama submenu untuk cabang ini belum terverifikasi.</Text>}
+      <Text type="supporting">{category.submenu_note || 'Nama sesuai screenshot yang diberikan; belum mencakup pertanyaan setelah pilihan ini.'}</Text>
+    </VStack> : <Text type="supporting">{category.submenu_state === 'none_reported' ? 'Tidak ada submenu kategori tambahan menurut pengujian pengguna pada alur ini. Langkah berikutnya dapat berbeda menurut akun atau wilayah.' : 'Nama submenu untuk cabang ini belum terverifikasi.'}</Text>}
+    {category.reference_routes?.length > 0 && <Text type="supporting">Rute referensi khusus wilayah (bukan pilihan pada screenshot ini): {category.reference_routes.map(route => route.label).join('; ')}.</Text>}
     <Text as="p">Rincian berikut adalah pemetaan kebijakan, bukan nama submenu Report X.</Text>
     <Grid columns={{ minWidth: 260 }} gap={3}>{category.subcategories.map(rule => <Card key={rule.id} variant="muted" padding={4}><VStack gap={2}>
       <Heading level={4}>{rule.label}</Heading><Text as="p" color="secondary">{rule.detail}</Text>
@@ -108,7 +109,7 @@ export function Taxonomy({ taxonomy, reload }) {
       <label>Platform <select value="x" onChange={() => {}}><option value="x">X</option></select></label>
       <label>Bahasa rincian kebijakan <select value={taxonomy.language || 'id'} onChange={e => reload(e.target.value)}><option value="id">Bahasa Indonesia</option><option value="en">English</option></select></label>
       <MetadataList orientation="horizontal"><MetadataListItem label="Versi">{taxonomy.report_menu?.version || taxonomy.version}</MetadataListItem><MetadataListItem label="Ditinjau">{taxonomy.report_menu?.checked_at || taxonomy.researched_at}</MetadataListItem></MetadataList>
-      <Notice kind="info">Nama menu dipertahankan persis dalam English sesuai bukti. Sembilan nama terverifikasi dari screenshot; bagian menu yang terpotong dan seluruh submenu belum terverifikasi. Ini bukan keputusan resmi X.</Notice>
+      <Notice kind="info">Nama menu dipertahankan persis dalam English sesuai bukti. Pilihan Private Content dan Impersonation sesuai screenshot; enam cabang dilaporkan tanpa submenu tambahan. Cabang lain dan langkah selanjutnya belum seluruhnya terverifikasi. Ini bukan keputusan resmi X.</Notice>
       <TextInput label="Cari kategori atau rincian kebijakan" type="search" startIcon="search" hasClear placeholder="Contoh: Spam, Harassment, atau ID rule" value={query} onChange={setQuery} />
       <VStack gap={3}>{renderGroups(verified)}</VStack>
       {documented.length > 0 && <DisclosureCard title="Label tambahan — belum terverifikasi di screenshot" meta="Referensi client independen, bukan konfirmasi UI live"><VStack gap={3}>{renderGroups(documented)}</VStack></DisclosureCard>}

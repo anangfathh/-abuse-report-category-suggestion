@@ -130,7 +130,7 @@ export function Findings({ value }) {
         <VStack gap={2}>
           <Text type="label" color="accent">{f.category || f.category_id}</Text>
           <Heading level={4}>{f.subcategory || f.rule_id}</Heading>
-          <Text type="supporting">{f.subcategory_is_report_label ? "Nama submenu dari dokumentasi resmi X; pertanyaan lanjutan belum lengkap." : "Rincian kebijakan, bukan nama submenu X."}</Text>
+          <Text type="supporting">{f.subcategory_is_report_label ? (f.report_subcategory?.verification === 'user_screenshot_verified' ? "Nama submenu sesuai screenshot X; pertanyaan lanjutan belum lengkap." : "Nama submenu dari dokumentasi resmi X; pertanyaan lanjutan belum lengkap.") : "Rincian kebijakan, bukan nama submenu X."}</Text>
           {f.subcategory_is_report_label && f.policy_subcategory && <Text type="supporting">Rincian kebijakan: {f.policy_subcategory}</Text>}
           {f.detail && <Text as="p" color="secondary">{f.detail}</Text>}
           {(f.evidence || []).map((q, j) => <Blockquote key={j}><span className="prewrap">{q}</span></Blockquote>)}
